@@ -1,0 +1,7 @@
+1. No single refund may exceed $200.
+2. Cumulative refunds in any 24-hour period may not exceed $1,000 per agent.
+3. Cumulative refunds in any 30-day period may not exceed $10,000 per customer.
+4. Refunds are only permitted for orders placed within the past 90 days.
+5. Any refund over $50 requires a reason code from the approved list ("defective", "not_as_described", "shipping_damaged", "duplicate_charge", "customer_dissatisfaction").
+6. No refunds may be issued to customers with account status equal to "fraud_flag" or "chargeback_pending".
+7. Refunds over $100 trigger a human-in-the-loop approval requirement.
