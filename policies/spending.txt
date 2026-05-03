@@ -1,0 +1,7 @@
+1. No single transaction may exceed $500.
+2. Cumulative spending in any 24-hour period may not exceed $5,000.
+3. Cumulative spending in any 30-day period may not exceed $50,000.
+4. Payments are only permitted to vendors on the approved vendor list.
+5. Any transaction over $200 requires a documented business justification of at least 20 characters.
+6. No payments may be sent to vendors with verification status equal to "pending" or "unverified."
+7. Transactions over $400 trigger a human-in-the-loop approval requirement.
