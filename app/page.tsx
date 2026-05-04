@@ -143,7 +143,7 @@ function ArchitectureDiagram() {
       <div className="grid gap-3 lg:grid-cols-3">
         <div className="rounded border border-stone-200 bg-stone-50 p-3">
           <div className="mb-1 text-[10px] uppercase tracking-wider text-stone-500">Your stack</div>
-          <div className="text-xs font-semibold text-stone-900">Your agent / orchestrator</div>
+          <div className="text-xs font-semibold text-stone-900">Your agent</div>
           <div className="mt-2 text-[11px] text-stone-600">
             Holds your <code>ICME_API_KEY</code>. Calls <code>checkIt</code> before every consequential
             action. Sees the SAT/UNSAT decision and a <code>proof_id</code>.
@@ -981,7 +981,7 @@ export default function Page() {
                   with your API key. You get back a <code>policy_id</code>.
                 </li>
                 <li>
-                  Swap the <code>policy_id</code> in this playground (or in your own agent orchestrator) and
+                  Swap the <code>policy_id</code> here (or in your own agent) and
                   every <code>checkIt</code> call will be evaluated against your rules.
                 </li>
               </ol>
@@ -1088,13 +1088,13 @@ export default function Page() {
                 ) : (
                   <div className="space-y-3">
                     <p className="text-xs text-stone-500">
-                      Your agent orchestrator makes one outbound call to Preflight before each action. Preflight returns
+                      Your agent makes one outbound call to Preflight before each action. Preflight returns
                       a small signed receipt: the SAT/UNSAT decision, a policy version hash, and a proof_id pointing to a
                       ZK proof. None of your underlying business data crosses the wire &mdash; only the action description
                       and the outcome.
                     </p>
                     <WireBlock
-                      title="1. Your agent orchestrator → Preflight"
+                      title="1. Your agent → Preflight"
                       description={
                         <>
                           Single outbound call before the agent acts. The <code>action</code> field is the natural-language
@@ -1627,7 +1627,7 @@ function IntegrateTabContent({
       <div className="mb-3 text-xs text-stone-600">
         End-to-end snippet using the values from the scenario you just ran. No SDK, no bespoke wrappers
         &mdash; just <code>fetch</code>/<code>requests</code> against the public Preflight API. Drop into
-        your agent orchestrator, swap in your <code>ICME_API_KEY</code>, and you have policy-checked
+        your agent, swap in your <code>ICME_API_KEY</code>, and you have policy-checked
         actions plus an externally-verifiable receipt for each.
       </div>
 
