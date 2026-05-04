@@ -387,6 +387,13 @@ export default function Page() {
     }
   }, []);
 
+  // ---- deep-link state: ?policy=<slug>&preset=<1-based-idx> ---------------
+  // Read once on mount. We only auto-fire after this has run, so a deep-link
+  // never gets clobbered by the default-policy auto-fire.
+  const [didProcessUrl, setDidProcessUrl] = useState(false);
+  const initialPresetIdxRef = useRef<number>(0);
+  const didAutofireRef = useRef(false);
+
   // ---- core demo state ---------------------------------------------------
   const [selectedPolicyId, setSelectedPolicyId] = useState<string>("spending");
   const [activePreset, setActivePreset] = useState<Preset | null>(null);
@@ -419,6 +426,34 @@ export default function Page() {
   const policyId = ENV_POLICY_IDS[policy.id] ?? "";
   const policyConfigured = Boolean(policyId);
   const effectiveReplay = replayMode || !policyConfigured;
+
+  // ---- deep-link reader: hydrate state from ?policy=&preset= -------------
+  // Runs once. Skipped entirely when a #share= hash is present, since that
+  // takes over the whole render. Sets didProcessUrl whether or not it
+  // matched; the auto-fire effect waits on this flag so a deep-link is
+  // never raced by the default-policy auto-fire.
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      setDidProcessUrl(true);
+      return;
+    }
+    if (window.location.hash.includes("share=")) {
+      setDidProcessUrl(true);
+      return;
+    }
+    const sp = new URLSearchParams(window.location.search);
+    const reqPolicy = sp.get("policy");
+    const reqPreset = sp.get("preset");
+    if (reqPolicy && policyById(reqPolicy)) {
+      setSelectedPolicyId(reqPolicy);
+    }
+    if (reqPreset) {
+      const n = parseInt(reqPreset, 10);
+      const idx = Number.isFinite(n) ? n - 1 : 0;
+      initialPresetIdxRef.current = Math.max(0, idx);
+    }
+    setDidProcessUrl(true);
+  }, []);
 
   // ---- health probe + pre-warm on mount ---------------------------------
   useEffect(() => {
@@ -673,6 +708,43 @@ export default function Page() {
     setTab("decision");
   }
 
+  // ---- auto-fire first preset on mount (or deep-linked preset) ----------
+  // Fires exactly once after the URL has been processed, so visitors land
+  // on a populated Decision pane instead of the empty "pick a preset"
+  // dead state. The didAutofireRef guard prevents re-firing when policy
+  // changes via the policy-library buttons later.
+  useEffect(() => {
+    if (!didProcessUrl) return;
+    if (didAutofireRef.current) return;
+    if (shareView) return;
+    if (checkLoading || activePreset) return;
+    const idx = initialPresetIdxRef.current;
+    const preset = policy.presets[idx] ?? policy.presets[0];
+    if (!preset) return;
+    didAutofireRef.current = true;
+    runCheck(preset);
+  }, [didProcessUrl, policy, shareView, checkLoading, activePreset]);
+
+  // ---- URL sync: keep ?policy=&preset= in step with current state -------
+  // replaceState (not pushState) so we don't pollute back-button history.
+  // Skipped while a #share= hash is being decoded.
+  useEffect(() => {
+    if (!didProcessUrl) return;
+    if (typeof window === "undefined") return;
+    if (window.location.hash.includes("share=")) return;
+    const sp = new URLSearchParams(window.location.search);
+    sp.set("policy", policy.id);
+    if (activePreset) {
+      const idx = policy.presets.findIndex((p) => p.label === activePreset.label);
+      if (idx >= 0) sp.set("preset", String(idx + 1));
+      else sp.delete("preset");
+    } else {
+      sp.delete("preset");
+    }
+    const newUrl = `${window.location.pathname}?${sp.toString()}${window.location.hash}`;
+    window.history.replaceState(null, "", newUrl);
+  }, [didProcessUrl, policy, activePreset]);
+
   // ---- shareable receipt-only view --------------------------------------
   if (shareView) {
     return <ReceiptOnlyView payload={shareView} onClear={() => {
@@ -696,7 +768,7 @@ export default function Page() {
       <header className="mb-6 flex items-start justify-between gap-6">
         <div>
           <div className="flex items-center gap-3">
-            <div className="text-xs font-semibold uppercase tracking-widest text-[#346DDB]">Preflight Proofs Playground</div>
+            <div className="text-xs font-semibold uppercase tracking-widest text-[#346DDB]">Preflight live demo</div>
             <HealthDot status={health} latencyMs={healthLatency} />
             {effectiveReplay && (
               <span className="inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] text-amber-800">
@@ -1463,6 +1535,23 @@ function DecisionTabContent({
                 {verifyError && <div className="text-xs text-rose-700">{verifyError}</div>}
               </div>
 
+              {verify && verify.valid && typeof verify.verify_ms === "number" && (
+                <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-5 py-4">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
+                    Verified &middot; independent of this site
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                    <div className="font-mono text-4xl font-semibold leading-none text-emerald-900">
+                      {verify.verify_ms}
+                      <span className="ml-1 text-xl font-normal text-emerald-700">ms</span>
+                    </div>
+                    <div className="max-w-prose text-xs leading-snug text-emerald-800">
+                      The browser called <span className="font-mono">api.icme.io/v1/verifyProof</span> directly &mdash;
+                      no API key, no proxy through this site. Open DevTools &rarr; Network to confirm.
+                    </div>
+                  </div>
+                </div>
+              )}
               {verify && (
                 <div className="mt-2 text-[11px] text-stone-500">
                   Full signed receipt available in the{" "}

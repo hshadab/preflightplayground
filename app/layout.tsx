@@ -1,10 +1,31 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+const SITE_TITLE = "Preflight — cryptographic receipts for AI agent actions";
+const SITE_DESCRIPTION =
+  "Run a real Preflight check against an AI agent action and verify the resulting SNARK in your browser. No API key, no trust required.";
+
+// Used to resolve relative OG / Twitter image URLs to absolute ones.
+// Override per environment via NEXT_PUBLIC_SITE_URL when the canonical
+// domain changes (e.g. when see.icme.io is wired up).
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://preflightplayground.vercel.app";
+
 export const metadata: Metadata = {
-  title: "Preflight Proofs Playground",
-  description:
-    "Run a real Preflight verification against an AI agent's spending action and independently verify the resulting cryptographic proof in your browser.",
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    type: "website",
+    siteName: "Preflight (ICME)",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
