@@ -16,7 +16,7 @@ const ENV_POLICY_IDS: Record<string, string> = {
   procurement: process.env.NEXT_PUBLIC_POLICY_ID_PROC ?? "",
 };
 
-const PROOF_TIMEOUT_MS = 45_000;
+const PROOF_TIMEOUT_MS = 90_000;
 const HEALTH_REFRESH_MS = 60_000;
 
 // ---------- helpers ---------------------------------------------------------
@@ -543,7 +543,15 @@ export default function Page() {
         }
         await new Promise((r) => setTimeout(r, 3000));
         if (Date.now() - (proofGenStartRef.current ?? Date.now()) > PROOF_TIMEOUT_MS) {
-          if (!cancelled) setProofTimedOut(true);
+          if (!cancelled) {
+            // Snap the visible counter to actual wall-clock elapsed.
+            // The 1s tick interval can be throttled by the browser when the tab
+            // is backgrounded, so proofGenSeconds may otherwise read low.
+            if (proofGenStartRef.current) {
+              setProofGenSeconds(Math.round((Date.now() - proofGenStartRef.current) / 1000));
+            }
+            setProofTimedOut(true);
+          }
           stop();
           return;
         }
@@ -1462,9 +1470,9 @@ function DecisionTabContent({
               <div className="mt-3 flex items-center gap-2 text-xs">
                 {proofTimedOut ? (
                   <>
-                    <span className="inline-block h-2 w-2 rounded-full bg-rose-500" />
-                    <span className="text-rose-700">
-                      SNARK generation taking longer than expected ({proofGenSeconds}s).
+                    <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
+                    <span className="text-amber-800">
+                      Still generating after {proofGenSeconds}s. The proof may already be ready &mdash; try verify now, or retry the status check.
                     </span>
                     <button
                       onClick={onRetryPolling}
@@ -1501,7 +1509,7 @@ function DecisionTabContent({
                     : proofReady
                     ? "Verify this proof independently"
                     : proofTimedOut
-                    ? "Try verifying anyway"
+                    ? "Try verify now"
                     : "Waiting for SNARK to finalize..."}
                 </button>
 
