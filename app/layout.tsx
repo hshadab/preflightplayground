@@ -7,9 +7,9 @@ const SITE_DESCRIPTION =
 
 // Used to resolve relative OG / Twitter image URLs to absolute ones.
 // Override per environment via NEXT_PUBLIC_SITE_URL when the canonical
-// domain changes (e.g. when see.icme.io is wired up).
+// domain changes (e.g. if a custom domain like demo.icme.io is wired up).
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://preflightplayground.vercel.app";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://preflight-demo.vercel.app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
