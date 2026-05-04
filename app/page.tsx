@@ -1568,7 +1568,7 @@ function DecisionTabContent({
                 <Disclosure
                   summary={
                     <span>
-                      <span className="font-semibold text-stone-900">Why generation is slow but verify is fast</span>
+                      <span className="font-semibold text-stone-900">Why proof verification is faster than generation</span>
                       <span className="ml-2 text-stone-500">the SNARK asymmetry</span>
                     </span>
                   }
