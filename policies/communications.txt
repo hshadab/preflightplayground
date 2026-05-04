@@ -1,7 +1,0 @@
-1. Outbound messages may only be sent to recipients with marketing_opt_in equal to "true" or in a transactional context (order confirmation, security alert, support reply).
-2. No more than 3 outbound messages may be sent to the same recipient in any 24-hour period.
-3. Messages must not be sent during the recipient's local quiet hours (9pm to 8am in their declared timezone).
-4. AI-generated promotional content must include a clear disclosure that the message was drafted by an AI agent.
-5. Messages must not contain medical, legal, or investment advice unless the sender holds a certified-advisor flag.
-6. SMS channel may only be used for recipients with sms_opt_in equal to "true" and on the approved-country list ("US", "CA", "UK").
-7. Any message larger than 1,000 characters or containing an attachment requires human-in-the-loop review.

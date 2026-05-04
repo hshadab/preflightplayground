@@ -13,7 +13,7 @@ const ENV_POLICY_IDS: Record<string, string> = {
   spending: process.env.NEXT_PUBLIC_POLICY_ID_SPENDING ?? process.env.NEXT_PUBLIC_POLICY_ID ?? "",
   refunds: process.env.NEXT_PUBLIC_POLICY_ID_REFUNDS ?? "",
   "data-access": process.env.NEXT_PUBLIC_POLICY_ID_DATA ?? "",
-  communications: process.env.NEXT_PUBLIC_POLICY_ID_COMMS ?? "",
+  procurement: process.env.NEXT_PUBLIC_POLICY_ID_PROC ?? "",
 };
 
 const PROOF_TIMEOUT_MS = 45_000;

@@ -17,7 +17,7 @@ The page is meant to be paste-able into a VC chat or a prospect's email and have
   - **Spending** — agent budget caps, vendor allow-list, fraud signals.
   - **Refunds** — refund caps, customer caps, reason-code allow-list, human approval thresholds.
   - **Data access** — PII handling, sensitive-field elevation, bulk-export caps, third-party DPAs.
-  - **Communications** — opt-in / quiet hours / disclosure / topic restrictions.
+  - **Procurement** — supplier master + sanctions, MSA / COI / DPA gates, contract-template drift, segregation of duties (SOX-flavored, Leah / Coupa / Zip / Ariba shape).
   Each policy ships with three presets (one SAT, two UNSAT) chosen to provoke "huh, I have that exact rule" reactions from the corresponding buyer persona.
 - **Left column (sticky)** — collapsible Active Policy with all clauses, three preset action buttons with expected SAT/UNSAT badges, "Talk to the founders" Calendly card, and a "Going deeper" stack of further disclosures (what's in the receipt vs. what isn't, run on your own policy, what changes for a confidential policy, audit trail downstream).
 - **Right column (tabbed)** — four tabs:
@@ -62,7 +62,7 @@ The Receipt tab has a "Share this receipt" button that captures the full verifie
 - `app/api/health/route.ts` — Edge route used by the status dot. Hits `/v1/verifyProof` with a bogus UUID expecting a fast 4xx (4xx = upstream alive). 4-second budget. We don't spend a real `checkIt` just to render a dot.
 - `app/globals.css` — light palette + ICME brand variables.
 - `scripts/compile-policy.ts` — one-time policy compile via `/v1/makeRules`. Supports `--policy <slug>`. See "Avoiding the $3 trap" below.
-- `policies/spending.txt`, `policies/refunds.txt`, `policies/data-access.txt`, `policies/communications.txt` — the four policy texts. SHA-256 of each file is its cache key.
+- `policies/spending.txt`, `policies/refunds.txt`, `policies/data-access.txt`, `policies/procurement.txt` — the four policy texts. SHA-256 of each file is its cache key.
 
 ## Setup
 
@@ -81,7 +81,7 @@ Required and optional environment variables (set in `.env.local` for local dev, 
 | `NEXT_PUBLIC_POLICY_ID_SPENDING`      | client | Compiled policy id for the spending policy.                               |
 | `NEXT_PUBLIC_POLICY_ID_REFUNDS`       | client | Compiled policy id for the refunds policy.                                |
 | `NEXT_PUBLIC_POLICY_ID_DATA`          | client | Compiled policy id for the data-access policy.                            |
-| `NEXT_PUBLIC_POLICY_ID_COMMS`         | client | Compiled policy id for the communications policy.                         |
+| `NEXT_PUBLIC_POLICY_ID_PROC`          | client | Compiled policy id for the procurement policy.                            |
 | `NEXT_PUBLIC_POLICY_ID`               | client | **Legacy alias** — used as a fallback for spending if the slug var is unset. Older deployments keep working. |
 | `NEXT_PUBLIC_CALENDLY_URL`            | client | Link behind the "Talk to the founders" button.                            |
 
@@ -101,7 +101,7 @@ Run it for each policy you want live (the script will prompt for $3 confirmation
 npm run policy:compile -- --policy spending
 npm run policy:compile -- --policy refunds
 npm run policy:compile -- --policy data-access
-npm run policy:compile -- --policy communications
+npm run policy:compile -- --policy procurement
 ```
 
 After success the script writes the `policy_id` to:

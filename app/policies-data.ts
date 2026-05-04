@@ -88,14 +88,14 @@ const DATA_CLAUSES = [
   "Access by an agent acting on behalf of a third party requires a documented data processing agreement reference.",
 ];
 
-const COMMS_CLAUSES = [
-  'Outbound messages may only be sent to recipients with marketing_opt_in equal to "true" or in a transactional context (order confirmation, security alert, support reply).',
-  "No more than 3 outbound messages may be sent to the same recipient in any 24-hour period.",
-  "Messages must not be sent during the recipient's local quiet hours (9pm to 8am in their declared timezone).",
-  "AI-generated promotional content must include a clear disclosure that the message was drafted by an AI agent.",
-  "Messages must not contain medical, legal, or investment advice unless the sender holds a certified-advisor flag.",
-  'SMS channel may only be used for recipients with sms_opt_in equal to "true" and on the approved-country list ("US", "CA", "UK").',
-  "Any message larger than 1,000 characters or containing an attachment requires human-in-the-loop review.",
+const PROCUREMENT_CLAUSES = [
+  "No single purchase order may commit more than $250,000, and cumulative quarterly spend with a single supplier may not exceed $1,000,000. Anything above either threshold escalates to a human procurement officer.",
+  'Supplier must be present in the supplier master with status equal to "active", with a current tax document on file (W-9 within 12 months for US, W-8 within 36 months for non-US) and a beneficial-ownership record for non-US entities.',
+  "Supplier and each disclosed beneficial owner must clear OFAC SDN, EU consolidated, UK HMT, and UN sanctions screening, with a screening timestamp no more than 24 hours before the PO is committed.",
+  "For any PO of $25,000 or more: executed MSA on file (effective and not expired); certificate of insurance with cyber liability ≥ $5,000,000 and general liability ≥ $2,000,000; DPA on file if the supplier will process personal or employee data; payment terms ≥ Net-30; advance payment ≤ 25% of PO total.",
+  "Contract clauses must stay inside the approved playbook: liability caps ≥ 1x annual contract value or $1,000,000 (whichever is higher); IP-infringement indemnity uncapped; auto-renewal includes ≥ 60 days prior written notice.",
+  "PO must be charged to a GL code mapped to the requesting cost center, and the encumbrance plus YTD spend on that GL must not exceed the cost center's remaining annual budget.",
+  "PO approver must be a distinct identity from the requester, must sit in the requesting cost center's approval chain, and must hold sufficient delegated authority. Any PO ≥ $100,000 requires a second approver at Controller level or above.",
 ];
 
 // A short, deterministic "looks-real" UUID used in replays. The receipt
@@ -431,107 +431,121 @@ export const POLICIES: Policy[] = [
     ],
   },
   {
-    id: "communications",
-    shortName: "Communications",
-    longName: "Outbound communications guardrail",
-    audience: "Marketing, growth, customer ops",
-    envKey: "NEXT_PUBLIC_POLICY_ID_COMMS",
-    clauses: COMMS_CLAUSES,
+    id: "procurement",
+    shortName: "Procurement",
+    longName: "Procurement and supplier governance",
+    audience: "Procurement, finance, internal audit, legal ops",
+    envKey: "NEXT_PUBLIC_POLICY_ID_PROC",
+    clauses: PROCUREMENT_CLAUSES,
     presenterNotes: [
-      "Best policy for marketing / growth / CRM buyers. They already pay for opt-in management; the receipt is the auditable proof their AI didn't bypass it.",
-      "Clause 4 (AI disclosure) is timely — it lines up with regulator chatter about disclosing AI-generated outreach.",
-      "The SMS clause (6) demonstrates how channel-specific rules compose with the rest of the policy without writing extra code.",
+      "This is the right policy for any buyer who's been through a SOX audit or runs an enterprise procurement / CLM workflow (think Coupa / SAP Ariba / Leah AI / Zip). They already think in clauses; this is the receipt for each one.",
+      "Lead with the clean Dell laptop reorder to anchor the happy path. Then the Pericles cyber-retainer preset is the demo's punchline: the SAME person both requested AND approved a $112k spend on a vendor with no MSA, sub-minimum cyber insurance, and Net-15 with 50% upfront. Six clauses fail simultaneously.",
+      "Close with the Cyprus sanctions hit. That preset is designed to show that the OFAC/EU clause is binary — every other clause passes, but a single sanctions match blocks the PO. Useful when a buyer asks 'what stops a clever agent from finding a way around our controls?'",
+      "If the buyer is on a CLM/procurement platform already, lean into clause 4 (MSA + COI + DPA) and clause 5 (template drift). These are exactly the checks their existing playbooks try to enforce — but today they live in a Word doc, not a cryptographic receipt.",
     ],
     presets: [
       {
-        label: "Order confirmation to an opted-in US recipient",
+        label: "$189k laptop refresh from Dell — clean PO",
         expected: "SAT",
-        blurb: "Transactional context exempts marketing opt-in; in-hours, short message, US recipient.",
+        blurb: "Routine in-master vendor, MSA + COI + W-9 current, three competing quotes, dual approval, on-budget GL.",
         action:
-          "Send an email to recipient R-5501 in timezone='America/New_York' (local time 2:14pm), context='order_confirmation', " +
-          "channel='email', length=480 chars, contains_attachment=false, ai_drafted=false. " +
-          "marketing_opt_in='false', sms_opt_in='false', country='US'. The recipient has received 1 message in the past 24 hours.",
+          "Issue PO 2026-04812 to Dell Technologies Inc. for 250 ThinkPad T16 refresh laptops at $758/unit, total $189,500. " +
+          "GL=6210 (IT-Hardware), cost_center=4400 (Engineering Platform), payment_terms=Net-30, advance_payment=0%. " +
+          "Supplier master: status='active', W-9 dated 2025-08-04, beneficial_owner=N/A (US entity). " +
+          "Sanctions screen: cleared 2026-04-30T19:11Z (OFAC, EU, UK, UN — all negative). " +
+          "MSA: executed 2024-03-12, expires 2027-03-11. COI: cyber=$10,000,000, general_liability=$5,000,000. DPA: not required (no PII in scope). " +
+          "Three competing quotes attached; no contract drift from template; CC 4400 GL 6210 has $480,000 remaining of $1,200,000 annual budget. " +
+          "Requester: alex.chen (Engineering Platform). Approver: margo.reed (Director, Engineering Platform; $250k delegated authority). Distinct identity, in approval chain.",
         clauses: [
-          { num: 1, status: "pass", note: "transactional context (order_confirmation) is exempt" },
-          { num: 2, status: "pass", note: "1 + 1 = 2 messages < 3 / 24h cap" },
-          { num: 3, status: "pass", note: "2:14pm local — outside quiet hours" },
-          { num: 4, status: "pass", note: "not AI-drafted promotional content" },
-          { num: 5, status: "pass", note: "no medical/legal/investment content" },
-          { num: 6, status: "pass", note: "channel='email' — SMS rule does not apply" },
-          { num: 7, status: "pass", note: "480 chars < 1,000, no attachment" },
+          { num: 1, status: "pass", note: "$189,500 < $250k single-PO ceiling; quarterly Dell spend $612k < $1M cap" },
+          { num: 2, status: "pass", note: "Dell active in master, W-9 within 12 months, US entity (no BO required)" },
+          { num: 3, status: "pass", note: "OFAC/EU/UK/UN screen clear at 2026-04-30T19:11Z (< 24h before commit)" },
+          { num: 4, status: "pass", note: "MSA current, cyber $10M ≥ $5M, GL $5M ≥ $2M, Net-30, no advance, DPA n/a" },
+          { num: 5, status: "pass", note: "Standard PO referencing approved MSA template — no clause drift" },
+          { num: 6, status: "pass", note: "GL 6210 mapped to CC 4400; $480k remaining > $189,500 encumbrance" },
+          { num: 7, status: "pass", note: "Requester ≠ approver, in chain, $250k authority covers; <$100k Controller floor" },
         ],
         replay: {
           proof_id: REPLAY_UUID(401),
           reason: "Action satisfies every clause of the policy.",
-          elapsed_ms: 372,
-          proof_gen_seconds: 6,
+          elapsed_ms: 392,
+          proof_gen_seconds: 7,
           verify: {
             valid: true,
-            verify_ms: 41,
+            verify_ms: 43,
             proof_bytes_len: 92160,
-            policy_hash: REPLAY_HASH("communications"),
+            policy_hash: REPLAY_HASH("procurement"),
             claimed_result: "SAT",
           },
         },
       },
       {
-        label: "SMS at 11pm to a non-opted-in recipient",
+        label: "$112k cyber retainer — self-approved, MSA pending, sub-min insurance",
         expected: "UNSAT",
-        blurb: "Quiet-hours violation, missing SMS opt-in, missing marketing opt-in — multiple clauses fail.",
+        blurb: "Same person requested and approved. MSA not executed. Cyber insurance below minimum. Net-15 with 50% upfront. Six clauses fail.",
         action:
-          "Send an SMS to recipient R-9920 in timezone='America/Los_Angeles' (local time 11:04pm), context='promotional', " +
-          "channel='sms', length=320 chars, contains_attachment=false, ai_drafted=true (no disclosure). " +
-          "marketing_opt_in='false', sms_opt_in='false', country='US'. The recipient has received 0 messages in the past 24 hours.",
+          "Issue PO 2026-04934 to Pericles Cyber LLC for a 12-month incident-response retainer, total $112,000. " +
+          "GL=6450 (Security-Services), cost_center=8100 (CISO Office), payment_terms=Net-15, advance_payment=50%. " +
+          "Supplier master: status='active', W-9 dated 2025-09-22. " +
+          "Sanctions screen: cleared 2026-04-30T18:02Z. " +
+          "MSA: in-flight, redlines outstanding, NOT executed. COI: cyber=$2,000,000, general_liability=$1,500,000. DPA: missing (vendor will access incident data including employee identifiers). " +
+          "No competing bids; sole-source justification field length = 19 chars ('urgent, breach pending'). No template-drift flags raised because no contract is on file. " +
+          "GL 6450 mapped to CC 8100, $340k remaining of $400k. " +
+          "Requester: david.park (Security Architect). Approver: david.park (self-approval). No second approver despite $112k > $100k Controller threshold.",
         clauses: [
-          { num: 1, status: "fail", note: "promotional context but marketing_opt_in='false'" },
-          { num: 2, status: "pass", note: "0 + 1 = 1 message < 3 / 24h cap" },
-          { num: 3, status: "fail", note: "11:04pm local — inside 9pm-8am quiet hours" },
-          { num: 4, status: "fail", note: "AI-drafted promotional content with no disclosure" },
-          { num: 5, status: "pass", note: "no medical/legal/investment content" },
-          { num: 6, status: "fail", note: "channel='sms' but sms_opt_in='false'" },
-          { num: 7, status: "pass", note: "320 chars < 1,000, no attachment" },
+          { num: 1, status: "pass", note: "$112k < $250k ceiling and quarterly Pericles spend $0 < $1M cap" },
+          { num: 2, status: "pass", note: "Pericles active in master with current W-9" },
+          { num: 3, status: "pass", note: "Sanctions clear at 2026-04-30T18:02Z" },
+          { num: 4, status: "fail", note: "MSA NOT executed; cyber $2M < $5M required; DPA missing; Net-15 < Net-30; advance 50% > 25% cap" },
+          { num: 5, status: "pass", note: "No referenced contract — playbook drift not assessable" },
+          { num: 6, status: "pass", note: "GL 6450 / CC 8100 within remaining budget" },
+          { num: 7, status: "fail", note: "Self-approval (requester == approver); also $112k ≥ $100k requires Controller-level second approver" },
         ],
         replay: {
           proof_id: REPLAY_UUID(402),
-          reason: "Action violates the policy. Both Z3 and the AR engine agree.",
-          elapsed_ms: 441,
-          proof_gen_seconds: 7,
+          reason: "Action violates the policy on commercial terms (clause 4) and segregation of duties (clause 7). Z3 confirmed UNSAT and the AR engine flagged the same control gaps in plain language.",
+          elapsed_ms: 458,
+          proof_gen_seconds: 8,
           verify: {
             valid: true,
-            verify_ms: 49,
+            verify_ms: 51,
             proof_bytes_len: 92160,
-            policy_hash: REPLAY_HASH("communications"),
+            policy_hash: REPLAY_HASH("procurement"),
             claimed_result: "UNSAT",
           },
         },
       },
       {
-        label: "AI-drafted promo email without disclosure",
+        label: "$42k Cyprus supplier — sanctions hit on beneficial owner",
         expected: "UNSAT",
-        blurb: "All recipient signals are fine, but the AI-disclosure tag is missing — violates clause 4.",
+        blurb: "Every other clause passes. A single sanctions match on the disclosed beneficial owner blocks the PO outright.",
         action:
-          "Send an email to recipient R-3380 in timezone='Europe/London' (local time 10:32am), context='promotional', " +
-          "channel='email', length=720 chars, contains_attachment=false, ai_drafted=true (no disclosure). " +
-          "marketing_opt_in='true', sms_opt_in='false', country='UK'. The recipient has received 1 message in the past 24 hours.",
+          "Issue PO 2026-05007 to Neva Trading Group Ltd. (Cyprus) for $42,800 in cross-border fulfillment services. " +
+          "GL=6300 (Logistics-Outbound), cost_center=5200 (Operations), payment_terms=Net-30, advance_payment=0%. " +
+          "Supplier master: status='active', W-8BEN-E dated 2024-11-09. Beneficial owner disclosed: Igor Volkov (50.1% shareholder), nationality RU. " +
+          "Sanctions screen result at 2026-04-30T18:55Z: Neva Trading clear on OFAC SDN; parent Petroneva Holdings Ltd. (BVI) flagged on EU consolidated list (entry 2024/1287); beneficial owner I. Volkov flagged on UK HMT list (entry RUS0421). " +
+          "MSA executed 2025-11-02, valid through 2026-11-01. COI cyber $5,000,000, general liability $2,000,000. DPA on file (vendor processes shipping-recipient PII). " +
+          "Two competing quotes attached; no template drift. GL 6300 / CC 5200 has $138,000 remaining. " +
+          "Requester: ops-bot-prod (service identity). Approver: ramona.silva (Director, Operations; $250k delegated authority). Distinct identity, in chain.",
         clauses: [
-          { num: 1, status: "pass", note: "marketing_opt_in='true'" },
-          { num: 2, status: "pass", note: "1 + 1 = 2 messages < 3 / 24h cap" },
-          { num: 3, status: "pass", note: "10:32am local — outside quiet hours" },
-          { num: 4, status: "fail", note: "AI-drafted promotional content with no disclosure" },
-          { num: 5, status: "pass", note: "no medical/legal/investment content" },
-          { num: 6, status: "pass", note: "channel='email' — SMS rule does not apply" },
-          { num: 7, status: "pass", note: "720 chars < 1,000, no attachment" },
+          { num: 1, status: "pass", note: "$42,800 < $250k ceiling; quarterly Neva spend $11k < $1M cap" },
+          { num: 2, status: "pass", note: "Neva active in master, W-8 within 36 months, beneficial owner record present" },
+          { num: 3, status: "fail", note: "EU sanctions match on parent Petroneva Holdings (entry 2024/1287); UK HMT match on beneficial owner I. Volkov (entry RUS0421)" },
+          { num: 4, status: "pass", note: "MSA, COI, DPA, Net-30 all satisfied for ≥$25k tier" },
+          { num: 5, status: "pass", note: "No template drift" },
+          { num: 6, status: "pass", note: "GL 6300 / CC 5200 within remaining budget" },
+          { num: 7, status: "pass", note: "Approver distinct, in chain, sufficient authority" },
         ],
         replay: {
           proof_id: REPLAY_UUID(403),
-          reason: "Action does not satisfy the policy. The AR engine identified a missing required disclosure against the natural-language rules.",
-          elapsed_ms: 411,
-          proof_gen_seconds: 6,
+          reason: "Action violates the policy. The AR engine identified two distinct sanctions matches on the supplier's parent entity and disclosed beneficial owner. A single sanctions hit is sufficient to block the PO regardless of how clean the rest of the file is.",
+          elapsed_ms: 421,
+          proof_gen_seconds: 7,
           verify: {
             valid: true,
-            verify_ms: 44,
+            verify_ms: 46,
             proof_bytes_len: 92160,
-            policy_hash: REPLAY_HASH("communications"),
+            policy_hash: REPLAY_HASH("procurement"),
             claimed_result: "UNSAT",
           },
         },

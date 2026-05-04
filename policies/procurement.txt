@@ -1,0 +1,15 @@
+Procurement and supplier governance policy. The agent is authorized to issue purchase orders and onboard suppliers within the bounds below. Every PO emitted by the agent must satisfy every clause; if any clause fails the action is blocked and routed to a human procurement officer.
+
+1. The agent may not issue any single purchase order with a committed value above $250,000, and may not commit cumulative quarterly spend with a single supplier above $1,000,000. Any PO that would breach either threshold must be escalated to a human procurement officer.
+
+2. The supplier must be present in the supplier master with status equal to "active". A current tax document must be on file: W-9 dated within the past 12 months for US suppliers, or W-8 dated within the past 36 months for non-US suppliers. Suppliers organized outside the United States must have a beneficial-ownership record on file.
+
+3. The supplier and each disclosed beneficial owner must clear OFAC SDN, EU consolidated, UK HMT, and UN sanctions screening. The screening result must be timestamped no more than 24 hours before the PO is committed.
+
+4. For any PO with a committed value of $25,000 or more, all of the following must be true: an executed master services agreement is on file with effective date in the past and end date in the future; a current certificate of insurance shows cyber liability of at least $5,000,000 and general liability of at least $2,000,000; a data processing addendum is on file if the supplier will access, store, or process personal data or employee data; payment terms are Net-30 or longer; and any advance payment does not exceed 25% of the PO total.
+
+5. Any PO referencing a contract clause must remain inside the approved playbook: liability caps must be at least 1x annual contract value or $1,000,000, whichever is higher; indemnification for third-party intellectual property infringement must be uncapped; and any auto-renewal term must include at least 60 days of prior written notice to the buyer.
+
+6. The PO must be charged to a general-ledger code that is mapped to the requesting cost center, and the encumbrance plus year-to-date spend on that GL must not exceed the cost center's remaining annual budget.
+
+7. The PO approver must be a distinct identity from the requester, must sit in the requesting cost center's approval chain, and must hold sufficient delegated authority for the PO amount. Any PO with a committed value of $100,000 or more requires a second approver at Controller level or above.
