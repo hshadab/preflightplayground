@@ -798,11 +798,12 @@ export default function Page() {
           </h1>
           <p className="mt-3 max-w-3xl text-sm text-stone-600">
             AI agents are starting to spend real money, refund customers, access regulated data, and message
-            customers on behalf of companies. How do you prove an autonomous action stayed inside the rules
-            &mdash; without trusting the agent, the AI vendor, or even Preflight itself? Every action below
-            generates a tamper-evident receipt: Preflight first decides whether the action satisfies your
-            policy (SAT/UNSAT), then issues a SNARK that an auditor, a customer, or a regulator can verify
-            in milliseconds against ICME&rsquo;s public endpoint &mdash; without ever seeing your business
+            customers on behalf of companies. How do you stop the rule-breaking ones and prove the rest
+            stayed inside the lines, without trusting the agent, the AI vendor, or even Preflight itself?
+            Every action below runs through a preflight check: SAT clears the agent to execute, UNSAT
+            blocks the action before any side effect fires (no PO sent, no refund issued, no data
+            exported), and either outcome ships with a SNARK an auditor, a customer, or a regulator can
+            verify in milliseconds against ICME&rsquo;s public endpoint, without ever seeing your business
             data.
           </p>
         </div>
