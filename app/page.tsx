@@ -136,7 +136,7 @@ function HealthDot({ status, latencyMs }: { status: HealthStatus; latencyMs: num
 
 function ArchitectureDiagram() {
   return (
-    <div className="rounded-lg border border-stone-200 bg-white p-4">
+    <div className="rounded-lg border border-stone-200 bg-white p-3 sm:p-4">
       <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-700">
         Trust model — what crosses each line
       </div>
@@ -198,7 +198,7 @@ function ArchitectureDiagram() {
 
 function PresenterNotes({ policy }: { policy: Policy }) {
   return (
-    <section className="rounded-lg border border-stone-200 bg-white p-5">
+    <section className="rounded-lg border border-stone-200 bg-white p-4 sm:p-5">
       <div className="mb-4">
         <div className="text-[10px] uppercase tracking-widest text-[#346DDB]">Presenter notes</div>
         <div className="text-sm font-semibold text-stone-900">{policy.longName}</div>
@@ -732,7 +732,7 @@ export default function Page() {
   }
   if (shareError) {
     return (
-      <main className="mx-auto max-w-2xl px-6 py-12 text-sm text-rose-700">
+      <main className="mx-auto max-w-2xl px-4 py-8 text-sm text-rose-700 sm:px-6 sm:py-12">
         <div className="rounded border border-rose-200 bg-rose-50 p-4">
           Could not parse shared receipt: {shareError}
         </div>
@@ -742,10 +742,10 @@ export default function Page() {
 
   // ---- main render -------------------------------------------------------
   return (
-    <main className="mx-auto max-w-7xl px-6 py-8">
-      <header className="mb-6 flex items-start justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-3">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-3 sm:gap-6">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="text-xs font-semibold uppercase tracking-widest text-[#346DDB]">Preflight live demo</div>
             <HealthDot status={health} latencyMs={healthLatency} />
             {effectiveReplay && (
@@ -755,7 +755,7 @@ export default function Page() {
               </span>
             )}
           </div>
-          <h1 className="mt-1 text-2xl font-semibold text-stone-900 sm:text-3xl">
+          <h1 className="mt-1 text-xl font-semibold text-stone-900 sm:text-3xl">
             Cryptographic receipts for AI agent actions.
           </h1>
           <p className="mt-3 max-w-3xl text-sm text-stone-600">
@@ -774,12 +774,12 @@ export default function Page() {
           <img
             src="https://lh3.googleusercontent.com/zIz4Vb9ksY4pKhfHUT2MyVeMeNWdviRQIDnVVL9fCBofCGvKFi-8s7JHbjFjD3Baoxbk9Q6iLAzoj3jKxf_VNGxd78h5beg3KQ=s0"
             alt="ICME Labs"
-            className="h-10 w-auto sm:h-12"
+            className="h-8 w-auto sm:h-12"
           />
         </a>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
         {/* LEFT COLUMN: policy library + presets, sticky on desktop */}
         <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
           {/* policy library */}
@@ -992,7 +992,7 @@ export default function Page() {
         {/* RIGHT COLUMN: tabbed (Decision / Wire / Receipt / Integrate) */}
         <div className="rounded-lg border border-stone-200 bg-white">
           {/* Tab bar */}
-          <div className="flex flex-wrap items-center gap-1 border-b border-stone-200 px-2 pt-2">
+          <div className="flex flex-wrap items-center gap-1 overflow-x-auto border-b border-stone-200 px-2 pt-2">
             {([
               { id: "decision", label: "Decision", enabled: true, dot: Boolean(check) },
               { id: "wire", label: "API call", enabled: Boolean(check && activePreset), dot: false },
@@ -1023,7 +1023,7 @@ export default function Page() {
             })}
           </div>
 
-          <div className="p-5">
+          <div className="p-4 sm:p-5">
             {/* DECISION TAB */}
             {tab === "decision" && (
               <DecisionTabContent
@@ -1696,7 +1696,7 @@ function ReceiptOnlyView({ payload, onClear }: { payload: SharePayload; onClear:
 
   const v = payload.verify;
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10">
+    <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
       <div className="mb-6">
         <div className="text-xs font-semibold uppercase tracking-widest text-[#346DDB]">Preflight receipt</div>
         <h1 className="mt-1 text-2xl font-semibold text-stone-900">Shared by a Preflight customer</h1>
@@ -1707,7 +1707,7 @@ function ReceiptOnlyView({ payload, onClear }: { payload: SharePayload; onClear:
         </p>
       </div>
 
-      <div className="rounded-lg border border-stone-200 bg-white p-5">
+      <div className="rounded-lg border border-stone-200 bg-white p-4 sm:p-5">
         <div className="mb-3 grid gap-3 sm:grid-cols-2">
           <div>
             <div className="text-[10px] uppercase tracking-wider text-stone-500">Policy</div>
