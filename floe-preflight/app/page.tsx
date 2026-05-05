@@ -902,13 +902,6 @@ export default function Page() {
                 );
               })}
             </div>
-            {!policyConfigured && (
-              <div className="mt-3 rounded border border-amber-300 bg-amber-50 p-2 text-[11px] text-amber-800">
-                <code>{policy.envKey}</code> is not set, so this policy runs as a deterministic replay of a
-                pre-recorded run. To make it live, run{" "}
-                <code>npm run policy:compile -- --policy {policy.id}</code> and set the env var.
-              </div>
-            )}
           </section>
 
           <section className="rounded-lg border border-stone-200 bg-white p-4">
