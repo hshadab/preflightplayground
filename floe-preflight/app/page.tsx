@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { POLICIES, policyById, type Policy, type Preset } from "./policies-data";
 import { curlSnippet, tsSnippet, pythonSnippet } from "./snippets";
 
-const CALENDLY_URL = process.env.NEXT_PUBLIC_CALENDLY_URL ?? "https://calendly.com/";
 const VERIFY_URL = "https://api.icme.io/v1/verifyProof";
 
 // Per-policy env keys for the three Floe-shaped policies. Each is empty in the
@@ -902,18 +901,6 @@ export default function Page() {
                 );
               })}
             </div>
-          </section>
-
-          <section className="rounded-lg border border-stone-200 bg-white p-4">
-            <div className="text-xs text-stone-700">Want this in your stack?</div>
-            <a
-              href={CALENDLY_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-2 inline-block rounded border border-stone-300 px-3 py-1.5 text-xs text-stone-900 hover:border-stone-400"
-            >
-              Talk to the founders &rarr;
-            </a>
           </section>
 
           <section className="space-y-2">
