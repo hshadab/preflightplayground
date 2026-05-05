@@ -778,12 +778,6 @@ export default function Page() {
           <div className="flex items-center gap-3">
             <div className="text-xs font-semibold uppercase tracking-widest text-[#346DDB]">Verifiable Floe · Preflight demo</div>
             <HealthDot status={health} latencyMs={healthLatency} />
-            {effectiveReplay && (
-              <span className="inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] text-amber-800">
-                <span className="h-2 w-2 rounded-full bg-amber-500" />
-                Replay mode {policyConfigured ? "(toggle: r)" : "(no compiled policy_id)"}
-              </span>
-            )}
             <button
               type="button"
               onClick={() => setShowPresenter((v) => !v)}
