@@ -196,34 +196,15 @@ function ArchitectureDiagram() {
   );
 }
 
-function PresenterNotesDrawer({
-  open,
-  onClose,
-  policy,
-}: {
-  open: boolean;
-  onClose: () => void;
-  policy: Policy;
-}) {
-  if (!open) return null;
+function PresenterNotes({ policy }: { policy: Policy }) {
   return (
-    <div className="fixed inset-y-0 right-0 z-50 w-full max-w-sm overflow-y-auto border-l border-stone-300 bg-white p-5 shadow-xl">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <div className="text-[10px] uppercase tracking-widest text-[#346DDB]">Presenter notes</div>
-          <div className="text-sm font-semibold text-stone-900">{policy.longName}</div>
-          <div className="text-[11px] text-stone-500">Audience: {policy.audience}</div>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded border border-stone-300 px-2 py-1 text-[11px] text-stone-700 hover:border-stone-400"
-          aria-label="Close presenter notes"
-        >
-          esc
-        </button>
+    <section className="rounded-lg border border-stone-200 bg-white p-5">
+      <div className="mb-4">
+        <div className="text-[10px] uppercase tracking-widest text-[#346DDB]">Presenter notes</div>
+        <div className="text-sm font-semibold text-stone-900">{policy.longName}</div>
+        <div className="text-[11px] text-stone-500">Audience: {policy.audience}</div>
       </div>
-      <div className="space-y-3 text-xs text-stone-700">
+      <div className="grid gap-5 text-xs text-stone-700 md:grid-cols-3">
         <div>
           <div className="mb-1 font-semibold text-stone-900">Talking points</div>
           <ul className="space-y-2 pl-4">
@@ -262,13 +243,8 @@ function PresenterNotesDrawer({
             </li>
           </ul>
         </div>
-        <div className="rounded border border-stone-200 bg-stone-50 p-2 text-[11px] text-stone-500">
-          Hotkeys: <kbd className="rounded border border-stone-300 px-1">?</kbd> toggle these notes,{" "}
-          <kbd className="rounded border border-stone-300 px-1">r</kbd> toggle replay mode,{" "}
-          <kbd className="rounded border border-stone-300 px-1">esc</kbd> close.
-        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -419,7 +395,6 @@ export default function Page() {
   // run rather than calling the live API. Auto-flipped to true if the
   // policy has no compiled policy_id, or when the user hits 'r'.
   const [replayMode, setReplayMode] = useState(false);
-  const [showPresenter, setShowPresenter] = useState(false);
 
   // ---- derived ----------------------------------------------------------
   const policy = policyById(selectedPolicyId) ?? POLICIES[0];
@@ -481,19 +456,14 @@ export default function Page() {
     };
   }, []);
 
-  // ---- hotkeys: '?' presenter notes, 'r' replay, esc close ---------------
+  // ---- hotkeys: 'r' replay -----------------------------------------------
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       // Ignore when typing in inputs.
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
-      if (e.key === "?") {
-        e.preventDefault();
-        setShowPresenter((v) => !v);
-      } else if (e.key === "r" || e.key === "R") {
+      if (e.key === "r" || e.key === "R") {
         setReplayMode((v) => !v);
-      } else if (e.key === "Escape") {
-        setShowPresenter(false);
       }
     }
     window.addEventListener("keydown", onKey);
@@ -784,14 +754,6 @@ export default function Page() {
                 Replay mode {policyConfigured ? "(toggle: r)" : "(no compiled policy_id)"}
               </span>
             )}
-            <button
-              type="button"
-              onClick={() => setShowPresenter((v) => !v)}
-              className="rounded border border-stone-300 px-2 py-1 text-[11px] text-stone-700 hover:border-stone-400"
-              title="Presenter notes (?)"
-            >
-              ? notes
-            </button>
           </div>
           <h1 className="mt-1 text-2xl font-semibold text-stone-900 sm:text-3xl">
             Cryptographic receipts for AI agent actions.
@@ -1271,6 +1233,11 @@ export default function Page() {
         <ArchitectureDiagram />
       </div>
 
+      {/* Presenter notes (always visible below the fold) */}
+      <div className="mt-8">
+        <PresenterNotes policy={policy} />
+      </div>
+
       <footer className="mt-12 border-t border-stone-200 pt-6 text-xs text-stone-500">
         Built on the ICME Preflight API. Proofs are generated and verified against{" "}
         <a className="underline" href="https://api.icme.io/v1" target="_blank" rel="noreferrer">
@@ -1280,15 +1247,8 @@ export default function Page() {
         <a className="underline" href="https://docs.icme.io" target="_blank" rel="noreferrer">
           docs.icme.io
         </a>
-        . Hotkeys: <kbd className="rounded border border-stone-300 px-1">?</kbd> presenter notes,{" "}
-        <kbd className="rounded border border-stone-300 px-1">r</kbd> toggle replay mode.
+        .
       </footer>
-
-      <PresenterNotesDrawer
-        open={showPresenter}
-        onClose={() => setShowPresenter(false)}
-        policy={policy}
-      />
     </main>
   );
 }
