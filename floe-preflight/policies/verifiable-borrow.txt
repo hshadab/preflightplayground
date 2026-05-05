@@ -15,3 +15,5 @@ This policy governs whether a Floe instant_borrow request from an AI agent shoul
 6. The total outstanding principal across every agent operating under this principal's parent budget must remain less than or equal to the parent budget's borrow ceiling after this borrow is added.
 
 7. The lender wallet selected by the matcher must be at least thirty days old, measured from its first on-chain transaction.
+
+8. The principal's total cross-protocol exposure, defined as the sum of outstanding principal across Floe and any other lending protocols this principal participates in, must remain less than or equal to the configured cross-protocol exposure cap after this borrow is added.

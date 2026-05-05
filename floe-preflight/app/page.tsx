@@ -794,17 +794,13 @@ export default function Page() {
             </button>
           </div>
           <h1 className="mt-1 text-2xl font-semibold text-stone-900 sm:text-3xl">
-            Cryptographic receipts for every Floe agent action.
+            Verifiable credit guardrails for Floe agents.
           </h1>
           <p className="mt-3 max-w-3xl text-sm text-stone-600">
-            Floe agents borrow USDC against on-chain collateral, pay third-party APIs through the x402
-            facilitator, and trigger liquidations on overdue loans. The Floe protocol enforces. Preflight
-            records. Smart contracts give you a &ldquo;no&rdquo; via revert. Preflight gives you a
-            &ldquo;yes&rdquo; with a SNARK. Every action below runs through a preflight check: SAT clears
-            the agent to execute, UNSAT blocks the action before any side effect fires (no borrow placed,
-            no x402 payment sent, no liquidation submitted), and either outcome ships with a receipt a
-            lender, a borrower, or a regulator can verify in milliseconds against ICME&rsquo;s public
-            endpoint, without ever seeing the agent&rsquo;s prompts or the principal&rsquo;s book.
+            The agent proposes, your parameters decide, Preflight proves the parameters held. Every borrow,
+            every x402 spend, every liquidation runs through a pre-action check: SAT clears the action,
+            UNSAT blocks it before any side effect fires, and either outcome ships with a SNARK receipt a
+            lender, borrower, or regulator can verify in milliseconds against ICME&rsquo;s public endpoint.
           </p>
         </div>
         <a href="https://icme.io" target="_blank" rel="noreferrer" className="shrink-0">

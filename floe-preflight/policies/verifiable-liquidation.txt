@@ -2,16 +2,8 @@ Verifiable Liquidation Policy
 
 This policy governs whether a Floe liquidateLoan call from a liquidator bot should be cleared. Every clause must be satisfied for the liquidation to proceed in good faith.
 
-1. The loan's currentLtv must be strictly greater than the lender's maxLtvBps recorded for that loan. A liquidation is not justified while the loan is still inside the lender's permitted LTV envelope.
+1. The loan must be genuinely underwater. The loan's currentLtvBps must be strictly greater than the liquidationLtvBps configured for that loan. A liquidation is not justified while the loan is still inside the permitted LTV envelope.
 
-2. The Chainlink oracle's price for the collateral asset must be no older than 3600 seconds at the moment of execution.
+2. The circuit breaker must not be active. The price deviation between the most recent and previous oracle readings for the collateral asset must be less than 1500 basis points, the L2 sequencer for Base must have been continuously online for at least 3600 seconds prior to execution, and the oracle price must be no older than 3600 seconds at the moment of execution.
 
-3. The price deviation between the most recent and previous Chainlink readings for the collateral asset must be less than 1500 basis points. A higher deviation is in circuit-breaker territory and the liquidation must wait.
-
-4. The expected USD profit from the liquidation must be strictly greater than the configured MIN_PROFIT_USD floor plus twice the estimated USD gas cost. Liquidations that net less than this threshold are treated as grief and not permitted.
-
-5. There must be no pending repayment intent for this loanId in the matcher state at the moment of execution.
-
-6. The liquidator bot operator's address must not appear on any of the OFAC SDN, EU consolidated, UK HMT, or UN sanctions lists.
-
-7. The L2 sequencer for Base must have been continuously online for at least 3600 seconds prior to execution. Liquidations are not permitted during the sequencer's grace period after recovery.
+3. The liquidation must not be a malicious low-value action. The expectedProfit in USD must be strictly greater than the configured MIN_PROFIT_USD floor (default 10 USD). Liquidations that net less than this threshold are treated as grief and not permitted.

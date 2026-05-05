@@ -15,3 +15,5 @@ This policy governs whether a Floe x402 facilitator call from an AI agent should
 6. The settlement network must be Base mainnet (chain id 8453). Settlement on any other network is not permitted.
 
 7. The asset returned by x402/estimate must be USDC. Settlement in any other asset is not permitted under this policy.
+
+8. The agent's OperatorPermission must be approved, the current Unix timestamp must be strictly less than its expiry, and the auto-borrow that this paid call would trigger (priceRaw minus session_spend_remaining, floored at zero) must fit under the remaining headroom on borrowLimit minus borrowed for that operator.
