@@ -141,29 +141,29 @@ function ArchitectureDiagram() {
       </div>
       <div className="grid gap-3 lg:grid-cols-3">
         <div className="rounded border border-stone-200 bg-stone-50 p-3">
-          <div className="mb-1 text-[10px] uppercase tracking-wider text-stone-500">Your stack</div>
-          <div className="text-xs font-semibold text-stone-900">Your agent</div>
+          <div className="mb-1 text-[10px] uppercase tracking-wider text-stone-500">Floe stack</div>
+          <div className="text-xs font-semibold text-stone-900">Floe agent</div>
           <div className="mt-2 text-[11px] text-stone-600">
-            Holds your <code>ICME_API_KEY</code>. Calls <code>checkIt</code> before every consequential
-            action. Sees the SAT/UNSAT decision and a <code>proof_id</code>.
+            Holds the <code>ICME_API_KEY</code>. Calls <code>checkIt</code> before every{" "}
+            <code>instant_borrow</code>, <code>x402/estimate</code>, or <code>liquidateLoan</code>. Sees
+            the SAT/UNSAT decision and a <code>proof_id</code>.
           </div>
         </div>
         <div className="rounded border border-[#346DDB] bg-blue-50 p-3">
           <div className="mb-1 text-[10px] uppercase tracking-wider text-[#346DDB]">Preflight (ICME)</div>
           <div className="text-xs font-semibold text-stone-900">Decision + SNARK</div>
           <div className="mt-2 text-[11px] text-stone-700">
-            Evaluates the action against your compiled <code>policy_id</code> using Z3 + AR, then seals
-            the decision into a SNARK. In confidential mode, sees only commitments — never the action
-            text or the policy text.
+            Evaluates the action against the compiled <code>policy_id</code> using Z3 + AR, then seals
+            the decision into a SNARK.
           </div>
         </div>
         <div className="rounded border border-stone-200 bg-stone-50 p-3">
           <div className="mb-1 text-[10px] uppercase tracking-wider text-stone-500">External</div>
-          <div className="text-xs font-semibold text-stone-900">Auditor / counterparty / regulator</div>
+          <div className="text-xs font-semibold text-stone-900">Lender / borrower / regulator</div>
           <div className="mt-2 text-[11px] text-stone-600">
             Holds <em>no</em> API key. Calls <code>verifyProof</code> with just the <code>proof_id</code>.
-            Gets <code>valid: true</code> in milliseconds. Cannot reconstruct the action, your data,
-            or your policy text.
+            Gets <code>valid: true</code> in milliseconds. Cannot reconstruct the loan, the principal&rsquo;s
+            book, or the policy text.
           </div>
         </div>
       </div>
@@ -171,12 +171,12 @@ function ArchitectureDiagram() {
       <div className="mt-4 grid gap-2 text-[11px] text-stone-700 sm:grid-cols-2">
         <div className="rounded bg-stone-100 p-2">
           <span className="font-mono text-emerald-700">→</span>{" "}
-          <span className="font-semibold">Your agent → Preflight:</span> the action description and{" "}
+          <span className="font-semibold">Floe agent → Preflight:</span> the action description and{" "}
           <code>policy_id</code>. <span className="text-stone-500">(authenticated, server-side)</span>
         </div>
         <div className="rounded bg-stone-100 p-2">
           <span className="font-mono text-[#346DDB]">←</span>{" "}
-          <span className="font-semibold">Preflight → your agent:</span> SAT/UNSAT, reason, and{" "}
+          <span className="font-semibold">Preflight → Floe agent:</span> SAT/UNSAT, reason, and{" "}
           <code>proof_id</code>. <span className="text-stone-500">(small JSON, no proof body)</span>
         </div>
         <div className="rounded bg-stone-100 p-2">
@@ -188,7 +188,7 @@ function ArchitectureDiagram() {
           <span className="font-mono text-stone-500">←</span>{" "}
           <span className="font-semibold">Preflight → anyone:</span>{" "}
           <code>{`{ valid, verify_ms, policy_hash, claimed_result }`}</code>.{" "}
-          <span className="text-stone-500">(no business data, ever)</span>
+          <span className="text-stone-500">(no loan or principal data, ever)</span>
         </div>
       </div>
     </div>
@@ -263,7 +263,6 @@ function PresenterNotesDrawer({
         </div>
         <div className="rounded border border-stone-200 bg-stone-50 p-2 text-[11px] text-stone-500">
           Hotkeys: <kbd className="rounded border border-stone-300 px-1">?</kbd> toggle these notes,{" "}
-          <kbd className="rounded border border-stone-300 px-1">r</kbd> toggle replay mode,{" "}
           <kbd className="rounded border border-stone-300 px-1">esc</kbd> close.
         </div>
       </div>
@@ -416,15 +415,14 @@ export default function Page() {
   const [healthLatency, setHealthLatency] = useState<number | null>(null);
   // Replay (fallback) mode: when on, presets show the recorded happy-path
   // run rather than calling the live API. Auto-flipped to true if the
-  // policy has no compiled policy_id, or when the user hits 'r'.
-  const [replayMode, setReplayMode] = useState(false);
+  // policy has no compiled policy_id.
   const [showPresenter, setShowPresenter] = useState(false);
 
   // ---- derived ----------------------------------------------------------
   const policy = policyById(selectedPolicyId) ?? POLICIES[0];
   const policyId = ENV_POLICY_IDS[policy.id] ?? "";
   const policyConfigured = Boolean(policyId);
-  const effectiveReplay = replayMode || !policyConfigured;
+  const effectiveReplay = !policyConfigured;
 
   // ---- deep-link reader: hydrate state from ?policy=&preset= -------------
   // Runs once. Skipped entirely when a #share= hash is present, since that
@@ -489,8 +487,6 @@ export default function Page() {
       if (e.key === "?") {
         e.preventDefault();
         setShowPresenter((v) => !v);
-      } else if (e.key === "r" || e.key === "R") {
-        setReplayMode((v) => !v);
       } else if (e.key === "Escape") {
         setShowPresenter(false);
       }
@@ -775,7 +771,7 @@ export default function Page() {
       <header className="mb-6 flex items-start justify-between gap-6">
         <div>
           <div className="flex items-center gap-3">
-            <div className="text-xs font-semibold uppercase tracking-widest text-[#346DDB]">Verifiable Floe · Preflight demo</div>
+            <div className="text-xs font-semibold uppercase tracking-widest text-[#346DDB]">Verifiable Floe by ICME</div>
             <HealthDot status={health} latencyMs={healthLatency} />
             <button
               type="button"
@@ -929,70 +925,15 @@ export default function Page() {
                 <div>
                   <div className="mb-1 text-[10px] uppercase tracking-wider text-rose-700">NOT in the receipt</div>
                   <ul className="space-y-1 text-stone-600">
-                    <li>&middot; the underlying customer / vendor / recipient data</li>
-                    <li>&middot; transaction amounts, account numbers, refund reasons</li>
-                    <li>&middot; allowlists, opt-in lists, vendor lists</li>
-                    <li>&middot; justification text, message bodies</li>
-                    <li>&middot; cumulative spend / refund / messaging totals</li>
-                    <li>&middot; the policy text itself (in confidential mode)</li>
+                    <li>&middot; loan IDs, borrower addresses, collateral wallet identities</li>
+                    <li>&middot; <code>OperatorPermission</code> internals (borrowLimit, borrowed, expiry, restrictions)</li>
+                    <li>&middot; principal allowlists of payTo counterparties</li>
+                    <li>&middot; per-agent session and trailing-24h spend ledgers</li>
+                    <li>&middot; cross-protocol exposure totals across other lending venues</li>
+                    <li>&middot; lender wallet identities or matcher state</li>
                   </ul>
                 </div>
               </div>
-            </Disclosure>
-
-            <Disclosure
-              summary={
-                <span>
-                  <span className="font-semibold text-stone-900">Run this against your own policy</span>
-                </span>
-              }
-            >
-              <ol className="list-decimal space-y-2 pl-4 text-stone-600">
-                <li>
-                  Write your policy in plain English (one rule per line). The compiler accepts the same
-                  natural-language form you see above.
-                </li>
-                <li>
-                  Compile it once:{" "}
-                  <code className="rounded bg-stone-100 px-1 font-mono text-[11px] text-stone-900">
-                    POST /v1/makeRules
-                  </code>{" "}
-                  with your API key. You get back a <code>policy_id</code>.
-                </li>
-                <li>
-                  Swap the <code>policy_id</code> here (or in your own agent) and
-                  every <code>checkIt</code> call will be evaluated against your rules.
-                </li>
-              </ol>
-              <div className="mt-3 text-[11px] text-stone-500">
-                Compilation is a one-time cost per policy version. Once compiled, evaluation is fast and the
-                <code> policy_id</code> is reusable across as many actions as you want to check.
-              </div>
-            </Disclosure>
-
-            <Disclosure
-              summary={
-                <span>
-                  <span className="font-semibold text-stone-900">What changes for a confidential policy</span>
-                </span>
-              }
-            >
-              <p className="mb-2">
-                In the default flow, ICME sees your compiled policy text on the server side. For policies
-                that encode trade secrets, regulatory positions, or internal pricing, the same flow can run
-                in confidential mode.
-              </p>
-              <p className="mb-2">
-                In confidential mode, the policy is committed to a hash and the satisfiability check itself
-                runs as a zero-knowledge proof. The wire payload and the public verifyProof receipt look
-                the same as today &mdash; same <code>policy_hash</code>, same <code>claimed_result</code>,
-                same sub-second verification.
-              </p>
-              <p>
-                The difference: ICME never sees your policy text or your action inputs. Anyone can still
-                independently verify the receipt, but no one (including ICME) can reconstruct what was
-                checked.
-              </p>
             </Disclosure>
           </section>
         </aside>
@@ -1067,10 +1008,11 @@ export default function Page() {
                 ) : (
                   <div className="space-y-3">
                     <p className="text-xs text-stone-500">
-                      Your agent makes one outbound call to Preflight before each action. Preflight returns
-                      a small signed receipt: the SAT/UNSAT decision, a policy version hash, and a proof_id pointing to a
-                      ZK proof. None of your underlying business data crosses the wire &mdash; only the action description
-                      and the outcome.
+                      The Floe agent makes one outbound call to Preflight before each action (instant_borrow,
+                      x402/estimate, liquidateLoan). Preflight returns a small signed receipt: the SAT/UNSAT
+                      decision, a policy version hash, and a proof_id pointing to a ZK proof. No loan IDs,
+                      OperatorPermission internals, allowlists, or matcher state cross the wire &mdash; only
+                      the action description and the outcome.
                     </p>
                     <WireBlock
                       title="1. Your agent → Preflight"
@@ -1078,9 +1020,7 @@ export default function Page() {
                         <>
                           Single outbound call before the agent acts. The <code>action</code> field is the natural-language
                           description of what the agent wants to do; <code>policy_id</code> identifies which compiled
-                          ruleset to verify against. Sensitive fields can be hashed before transmission, and for
-                          confidential policies the same flow runs as a zero-knowledge proof so Preflight never sees
-                          the policy or the inputs.
+                          ruleset to verify against.
                         </>
                       }
                       request={{
@@ -1250,8 +1190,7 @@ export default function Page() {
         <a className="underline" href="https://docs.icme.io" target="_blank" rel="noreferrer">
           docs.icme.io
         </a>
-        . Hotkeys: <kbd className="rounded border border-stone-300 px-1">?</kbd> presenter notes,{" "}
-        <kbd className="rounded border border-stone-300 px-1">r</kbd> toggle replay mode.
+        .
       </footer>
 
       <PresenterNotesDrawer
