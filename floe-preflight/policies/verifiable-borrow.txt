@@ -1,0 +1,17 @@
+Verifiable Agent Borrow Policy
+
+This policy governs whether a Floe instant_borrow request from an AI agent should be cleared. Every clause must be satisfied for the borrow to proceed.
+
+1. The requested borrowAmount must be less than or equal to the agent's remaining on-chain credit line, computed as borrowLimit minus borrowed in the OperatorPermission for the operator address.
+
+2. The requested maxInterestRateBps must be less than or equal to the maxRateBps cap stored in the OperatorPermission for that operator.
+
+3. The current Unix timestamp must be strictly less than the expiry value in the OperatorPermission.
+
+4. If onBehalfOfRestriction in the OperatorPermission is non-zero, the onBehalfOf address in the borrow request must equal it exactly.
+
+5. The collateral asset must not have moved by more than 5 percent in absolute value over the last sixty minutes, measured against a recent market reference.
+
+6. The total outstanding principal across every agent operating under this principal's parent budget must remain less than or equal to the parent budget's borrow ceiling after this borrow is added.
+
+7. The lender wallet selected by the matcher must be at least thirty days old, measured from its first on-chain transaction.

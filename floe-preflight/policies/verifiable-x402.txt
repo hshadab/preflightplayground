@@ -1,0 +1,17 @@
+Verifiable x402 Spend Policy
+
+This policy governs whether a Floe x402 facilitator call from an AI agent should be cleared. Every clause must be satisfied for the paid request to proceed.
+
+1. The priceRaw returned by the x402/estimate call must be less than or equal to the agent's per-call spend cap, in raw USDC units.
+
+2. The agent's session_spend_remaining returned by x402/estimate must be greater than or equal to priceRaw.
+
+3. The agent's cumulative spend over the trailing twenty-four hours, plus priceRaw, must be less than or equal to the agent's daily spend cap.
+
+4. The payTo address must not appear on the OFAC SDN list, the EU consolidated list, the UK HMT list, or the UN sanctions list, with a screening timestamp not older than twenty-four hours.
+
+5. The payTo address must appear in the principal's allowlist of approved counterparties, OR the agent's role must permit unlisted counterparties under a documented exception.
+
+6. The settlement network must be Base mainnet (chain id 8453). Settlement on any other network is not permitted.
+
+7. The asset returned by x402/estimate must be USDC. Settlement in any other asset is not permitted under this policy.
