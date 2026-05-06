@@ -1249,6 +1249,42 @@ export default function Page() {
   );
 }
 
+// ---------- Decision pipeline (Step 1 visual) ------------------------------
+
+function DecisionPipeline() {
+  const stages = ["parse intent", "Z3 solver", "automated reasoning"];
+  const [active, setActive] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setActive((i) => (i + 1) % stages.length), 700);
+    return () => clearInterval(id);
+  }, [stages.length]);
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+      {stages.map((label, i) => {
+        const isActive = i === active;
+        const isPast = i < active;
+        return (
+          <span
+            key={label}
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors ${
+              isActive
+                ? "border-[#346DDB] bg-[#346DDB] text-white"
+                : isPast
+                ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                : "border-stone-300 bg-white text-stone-500"
+            }`}
+          >
+            <span className="font-mono text-[10px]">
+              {isPast ? "\u2713" : isActive ? "\u25CF" : "\u25CB"}
+            </span>
+            {label}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 // ---------- Decision tab content (extracted to keep the page bearable) -----
 
 function DecisionTabContent({
@@ -1301,9 +1337,15 @@ function DecisionTabContent({
       )}
       {checkLoading && (
         <div className="text-sm text-stone-600">
-          <div className="mb-1 text-[10px] uppercase tracking-wider text-stone-500">Step 1 of 2 &middot; Decision</div>
-          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[#346DDB] align-middle" />{" "}
-          Computing SAT/UNSAT: parsing intent &rarr; Z3 solver &rarr; automated reasoning&hellip;
+          <div className="mb-2 text-[10px] uppercase tracking-wider text-stone-500">Step 1 of 2 &middot; Decision</div>
+          <div className="flex items-center gap-2">
+            <span className="relative inline-flex h-3 w-3">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#346DDB] opacity-75" />
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-[#346DDB]" />
+            </span>
+            <span>Computing SAT/UNSAT&hellip;</span>
+          </div>
+          <DecisionPipeline />
         </div>
       )}
       {checkError && (
@@ -1424,9 +1466,9 @@ function DecisionTabContent({
                 </button>
               </div>
 
-              <div className="mt-3 flex items-center gap-2 text-xs">
+              <div className="mt-3 text-xs">
                 {proofTimedOut ? (
-                  <>
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
                     <span className="text-amber-800">
                       Still generating after {proofGenSeconds}s. The proof may already be ready &mdash; try verify now, or retry the status check.
@@ -1437,21 +1479,26 @@ function DecisionTabContent({
                     >
                       Retry
                     </button>
-                  </>
+                  </div>
                 ) : proofReady ? (
-                  <>
+                  <div className="flex items-center gap-2">
                     <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
                     <span className="text-emerald-700">
                       SNARK ready ({proofGenSeconds}s to generate). Verification is sub-second.
                     </span>
-                  </>
+                  </div>
                 ) : (
-                  <>
-                    <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-amber-500" />
-                    <span className="text-amber-800">
-                      SNARK generating on the backend... {proofGenSeconds}s
-                    </span>
-                  </>
+                  <div>
+                    <div className="flex items-baseline gap-3">
+                      <div className="font-mono text-3xl font-semibold tabular-nums text-amber-600">
+                        {proofGenSeconds}s
+                      </div>
+                      <div className="text-amber-800">SNARK sealing on the backend&hellip;</div>
+                    </div>
+                    <div className="mt-2 h-1 w-full overflow-hidden rounded bg-stone-200">
+                      <div className="animate-preflight-slide h-full w-1/3 rounded bg-amber-500" />
+                    </div>
+                  </div>
                 )}
               </div>
 
