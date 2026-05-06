@@ -792,7 +792,7 @@ export default function Page() {
             lender, borrower, or regulator can verify in milliseconds against ICME&rsquo;s public endpoint.{" "}
             <span className="text-stone-700">
               The three policies below are <strong>examples authored for this demo</strong>. ICME
-              doesn&rsquo;t write the rules in production; it just compiles them and proves they held.
+              doesn&rsquo;t write the rules in production.
             </span>
           </p>
         </div>

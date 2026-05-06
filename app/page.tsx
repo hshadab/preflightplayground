@@ -768,7 +768,7 @@ export default function Page() {
             data.{" "}
             <span className="text-stone-700">
               The four policies below are <strong>examples authored for this demo</strong>. ICME
-              doesn&rsquo;t write the rules in production; it just compiles them and proves they held.
+              doesn&rsquo;t write the rules in production.
             </span>
           </p>
         </div>
