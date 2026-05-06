@@ -789,7 +789,11 @@ export default function Page() {
             The agent proposes, your parameters decide, Preflight proves the parameters held. Every borrow,
             every x402 spend, every liquidation runs through a pre-action check: SAT clears the action,
             UNSAT blocks it before any side effect fires, and either outcome ships with a SNARK receipt a
-            lender, borrower, or regulator can verify in milliseconds against ICME&rsquo;s public endpoint.
+            lender, borrower, or regulator can verify in milliseconds against ICME&rsquo;s public endpoint.{" "}
+            <span className="text-stone-700">
+              The three policies below are <strong>example principal-authored policies</strong> &mdash; in
+              production, your risk team writes the clauses; ICME just compiles them and proves they held.
+            </span>
           </p>
         </div>
         <a href="https://icme.io" target="_blank" rel="noreferrer" className="shrink-0">
@@ -807,8 +811,11 @@ export default function Page() {
         <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
           {/* policy library */}
           <section>
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-700">
-              Policy library
+            <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-stone-700">
+              Example policies
+            </div>
+            <div className="mb-2 text-[11px] text-stone-500">
+              Authored by the principal, not by ICME
             </div>
             <div className="grid grid-cols-2 gap-2">
               {POLICIES.map((p) => {
@@ -844,6 +851,11 @@ export default function Page() {
           </section>
 
           <section>
+            <div className="mb-2 rounded border border-stone-200 bg-stone-50 p-2 text-[11px] text-stone-600">
+              <span className="font-semibold text-stone-800">Example policy.</span> Authored by us as a
+              stand-in for this demo. In production, your principal authors and compiles their own clauses;
+              the receipt&rsquo;s <code>policy_hash</code> would be theirs.
+            </div>
             <Disclosure
               summary={
                 <span>
@@ -903,6 +915,32 @@ export default function Page() {
             <div className="text-xs font-semibold uppercase tracking-wider text-stone-700">
               Going deeper
             </div>
+
+            <Disclosure
+              summary={
+                <span>
+                  <span className="font-semibold text-stone-900">Who writes the policy?</span>
+                </span>
+              }
+            >
+              <div className="space-y-2 text-stone-600">
+                <p>
+                  The principal &mdash; your risk, treasury, or compliance team &mdash; authors the clauses
+                  in SMT-LIB, runs <code>npm run policy:compile</code>, and gets a{" "}
+                  <code>policy_id</code> they pin into their agent. ICME never sees draft clauses, never
+                  edits them, and cannot change them retroactively.
+                </p>
+                <p>
+                  The three policies in this demo (borrow, x402, liquidation) were authored by us as
+                  illustrative stand-ins. Swap in your own and the receipt&rsquo;s <code>policy_hash</code>{" "}
+                  becomes the cryptographic attestation of <em>your</em> ruleset, not ours.
+                </p>
+                <p>
+                  Floe doesn&rsquo;t pick the rules either. The principal does. Preflight just compiles
+                  what they wrote and proves it held at decision time.
+                </p>
+              </div>
+            </Disclosure>
 
             <Disclosure
               summary={
