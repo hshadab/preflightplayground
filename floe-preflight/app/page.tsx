@@ -789,11 +789,7 @@ export default function Page() {
             The agent proposes, your parameters decide, Preflight proves the parameters held. Every borrow,
             every x402 spend, every liquidation runs through a pre-action check: SAT clears the action,
             UNSAT blocks it before any side effect fires, and either outcome ships with a SNARK receipt a
-            lender, borrower, or regulator can verify in milliseconds against ICME&rsquo;s public endpoint.{" "}
-            <span className="text-stone-700">
-              The three policies below are <strong>examples authored for this demo</strong>. ICME
-              doesn&rsquo;t write the rules in production.
-            </span>
+            lender, borrower, or regulator can verify in milliseconds against ICME&rsquo;s public endpoint.
           </p>
         </div>
         <a href="https://icme.io" target="_blank" rel="noreferrer" className="shrink-0">

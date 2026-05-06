@@ -765,11 +765,7 @@ export default function Page() {
             blocks the action before any side effect fires (no PO sent, no refund issued, no data
             exported), and either outcome ships with a SNARK an auditor, a customer, or a regulator can
             verify in milliseconds against ICME&rsquo;s public endpoint, without ever seeing your business
-            data.{" "}
-            <span className="text-stone-700">
-              The four policies below are <strong>examples authored for this demo</strong>. ICME
-              doesn&rsquo;t write the rules in production.
-            </span>
+            data.
           </p>
         </div>
         <a href="https://icme.io" target="_blank" rel="noreferrer" className="shrink-0">
