@@ -791,8 +791,8 @@ export default function Page() {
             UNSAT blocks it before any side effect fires, and either outcome ships with a SNARK receipt a
             lender, borrower, or regulator can verify in milliseconds against ICME&rsquo;s public endpoint.{" "}
             <span className="text-stone-700">
-              The three policies below are <strong>example principal-authored policies</strong>. In
-              production, your risk team writes the clauses; ICME just compiles them and proves they held.
+              The three policies below are <strong>examples authored for this demo</strong>. ICME
+              doesn&rsquo;t write the rules in production; it just compiles them and proves they held.
             </span>
           </p>
         </div>
@@ -815,7 +815,7 @@ export default function Page() {
               Example policies
             </div>
             <div className="mb-2 text-[11px] text-stone-500">
-              Authored by the principal, not by ICME
+              For this demo. Not authored by ICME in production.
             </div>
             <div className="grid grid-cols-2 gap-2">
               {POLICIES.map((p) => {
@@ -920,19 +920,16 @@ export default function Page() {
             >
               <div className="space-y-2 text-stone-600">
                 <p>
-                  The principal (your risk, treasury, or compliance team) authors the clauses in SMT-LIB,
-                  runs <code>npm run policy:compile</code>, and gets a <code>policy_id</code> they pin into
-                  their agent. ICME never sees draft clauses, never edits them, and cannot change them
-                  retroactively.
+                  Not ICME. The clauses, parameters, and thresholds come from outside ICME (from Floe,
+                  from the principal, or from however the two of them carve it up). ICME provides the
+                  compiler, the prover, and the verifier; it doesn&rsquo;t author rules and can&rsquo;t
+                  change them retroactively.
                 </p>
                 <p>
-                  The three policies in this demo (borrow, x402, liquidation) were authored by us as
-                  illustrative stand-ins. Swap in your own and the receipt&rsquo;s <code>policy_hash</code>{" "}
-                  becomes the cryptographic attestation of <em>your</em> ruleset, not ours.
-                </p>
-                <p>
-                  Floe doesn&rsquo;t pick the rules either. The principal does. Preflight just compiles
-                  what they wrote and proves it held at decision time.
+                  The three policies in this demo were written by us as illustrative stand-ins so the
+                  demo has something to evaluate. In production, swap them out and the receipt&rsquo;s{" "}
+                  <code>policy_hash</code> becomes the cryptographic attestation of whatever ruleset you
+                  actually shipped.
                 </p>
               </div>
             </Disclosure>
