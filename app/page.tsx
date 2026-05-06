@@ -765,7 +765,11 @@ export default function Page() {
             blocks the action before any side effect fires (no PO sent, no refund issued, no data
             exported), and either outcome ships with a SNARK an auditor, a customer, or a regulator can
             verify in milliseconds against ICME&rsquo;s public endpoint, without ever seeing your business
-            data.
+            data.{" "}
+            <span className="text-stone-700">
+              The four policies below are <strong>examples authored for this demo</strong>. ICME
+              doesn&rsquo;t write the rules in production; it just compiles them and proves they held.
+            </span>
           </p>
         </div>
         <a href="https://icme.io" target="_blank" rel="noreferrer" className="shrink-0">
@@ -783,8 +787,11 @@ export default function Page() {
         <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
           {/* policy library */}
           <section>
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-700">
-              Policy library
+            <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-stone-700">
+              Example policies
+            </div>
+            <div className="mb-2 text-[11px] text-stone-500">
+              For this demo. Not authored by ICME in production.
             </div>
             <div className="grid grid-cols-2 gap-2">
               {POLICIES.map((p) => {
@@ -922,10 +929,16 @@ export default function Page() {
             <Disclosure
               summary={
                 <span>
-                  <span className="font-semibold text-stone-900">Run this against your own policy</span>
+                  <span className="font-semibold text-stone-900">Who writes the policy?</span>
                 </span>
               }
             >
+              <p className="mb-3 text-stone-600">
+                Not ICME. Anyone with an API key can write rules and compile them; ICME provides the
+                compiler, prover, and verifier, but doesn&rsquo;t author the rules and can&rsquo;t change
+                them retroactively. The four policies in this demo are stand-ins so the demo has something
+                to evaluate.
+              </p>
               <ol className="list-decimal space-y-2 pl-4 text-stone-600">
                 <li>
                   Write your policy in plain English (one rule per line). The compiler accepts the same
