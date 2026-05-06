@@ -791,7 +791,7 @@ export default function Page() {
             UNSAT blocks it before any side effect fires, and either outcome ships with a SNARK receipt a
             lender, borrower, or regulator can verify in milliseconds against ICME&rsquo;s public endpoint.{" "}
             <span className="text-stone-700">
-              The three policies below are <strong>example principal-authored policies</strong> &mdash; in
+              The three policies below are <strong>example principal-authored policies</strong>. In
               production, your risk team writes the clauses; ICME just compiles them and proves they held.
             </span>
           </p>
@@ -851,11 +851,6 @@ export default function Page() {
           </section>
 
           <section>
-            <div className="mb-2 rounded border border-stone-200 bg-stone-50 p-2 text-[11px] text-stone-600">
-              <span className="font-semibold text-stone-800">Example policy.</span> Authored by us as a
-              stand-in for this demo. In production, your principal authors and compiles their own clauses;
-              the receipt&rsquo;s <code>policy_hash</code> would be theirs.
-            </div>
             <Disclosure
               summary={
                 <span>
@@ -925,10 +920,10 @@ export default function Page() {
             >
               <div className="space-y-2 text-stone-600">
                 <p>
-                  The principal &mdash; your risk, treasury, or compliance team &mdash; authors the clauses
-                  in SMT-LIB, runs <code>npm run policy:compile</code>, and gets a{" "}
-                  <code>policy_id</code> they pin into their agent. ICME never sees draft clauses, never
-                  edits them, and cannot change them retroactively.
+                  The principal (your risk, treasury, or compliance team) authors the clauses in SMT-LIB,
+                  runs <code>npm run policy:compile</code>, and gets a <code>policy_id</code> they pin into
+                  their agent. ICME never sees draft clauses, never edits them, and cannot change them
+                  retroactively.
                 </p>
                 <p>
                   The three policies in this demo (borrow, x402, liquidation) were authored by us as
