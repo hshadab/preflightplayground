@@ -2,11 +2,33 @@
 
 This guide walks through creating and funding an ICME Preflight API key that you can share with Floe developers.
 
+## Floe Devs API Key (Already Created)
+
+```bash
+ICME_API_KEY=sk-smt-floe-devs-d26d0ac324f04f7aa8bd5f5afcff6800
+ICME_BASE_URL=https://api.icme.io/v1
+```
+
+| Field | Value |
+|-------|-------|
+| **API Key** | `sk-smt-floe-devs-d26d0ac324f04f7aa8bd5f5afcff6800` |
+| **Username** | `floe-devs` |
+| **User ID** | `7c7ab46f-4597-4490-ab93-bce729b0cb34` |
+
+**Check balance anytime:**
+```bash
+curl -s https://api.icme.io/v1/me \
+  -H 'X-API-Key: sk-smt-floe-devs-d26d0ac324f04f7aa8bd5f5afcff6800'
+```
+
+---
+
 ## Overview
 
 - **Cost:** $5 USDC on Base (account creation) + additional top-ups as needed
 - **Result:** API key + credits that Floe devs can use immediately
 - **Network:** Base (chain ID 8453)
+- **USDC Contract on Base:** `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`
 
 ---
 
@@ -15,8 +37,8 @@ This guide walks through creating and funding an ICME Preflight API key that you
 You need an Ethereum-compatible wallet that supports the Base network.
 
 **Options:**
+- [Coinbase Wallet](https://www.coinbase.com/wallet) - Native Base support (recommended)
 - [MetaMask](https://metamask.io/) - Browser extension + mobile
-- [Coinbase Wallet](https://www.coinbase.com/wallet) - Native Base support
 - [Rainbow](https://rainbow.me/) - Mobile-first
 
 **Add Base network to MetaMask (if needed):**
@@ -37,8 +59,8 @@ You need USDC (not ETH) on the Base network. Options:
 3. **Swap:** If you have ETH on Base, swap for USDC on [Uniswap](https://app.uniswap.org/)
 
 **Recommended amount:**
-- **$25 USDC** - Basic experimentation (3,075 credits = ~10 policy compilations)
-- **$50 USDC** - Comfortable experimentation (6,075 credits = ~18 policy compilations + 600 checks)
+- **$25 USDC** - Basic experimentation (~10 policy compilations)
+- **$50 USDC** - Comfortable experimentation (~18 policy compilations + 600 checks)
 
 **Credit costs:**
 - Compile policy (`makeRules`): 300 credits
@@ -49,67 +71,103 @@ You need USDC (not ETH) on the Base network. Options:
 
 ## Step 3: Create the ICME Account
 
-The x402 flow is a 3-step process:
+> **IMPORTANT:** Use `POST /v1/createUser` (NOT `createUserX402`). The x402 endpoint requires EIP-3009 signatures which need special client libraries. The `createUser` endpoint accepts regular USDC transfers.
 
-### 3a. Initial Request (triggers 402 response)
-
-```bash
-curl -s -X POST https://api.icme.io/v1/createUserX402 \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"floe-preflight"}' | jq .
-```
-
-This returns a `402 Payment Required` response with:
-- `payTo` - The address to send USDC to
-- `amount` - Exact amount required ($5.00 USDC)
-- Payment instructions
-
-### 3b. Send USDC Payment
-
-Send **exactly $5.00 USDC** on Base to the `payTo` address from the 402 response.
-
-**Important:** Amount must be exact. Transaction must be on Base network.
-
-### 3c. Retry with Payment Signature
-
-After the transaction confirms, retry with the payment signature:
+### 3a. Initial Request (get deposit address)
 
 ```bash
-curl -s -X POST https://api.icme.io/v1/createUserX402 \
+curl -s -X POST https://api.icme.io/v1/createUser \
   -H 'Content-Type: application/json' \
-  -H 'Payment-Signature: <signature-from-payment>' \
-  -d '{"username":"floe-preflight"}' | jq .
+  -d '{"username":"your-username"}'
 ```
 
-**Response includes:**
+**Example response:**
 ```json
 {
-  "api_key": "icme_xxxxxxxxxxxxxxxxxxxxxxxx",
-  "credits": 325,
-  "username": "floe-preflight"
+  "payTo": "0xca3cf27448bef5c07756fe80f1eb58bd7a1d1bfb",
+  "stripePaymentIntentId": "pi_3TWFBNIk3or7l4Yr2npI7nix",
+  "error": "Payment required. Send $5.00 USDC to the deposit address below, then retry with stripe_payment_intent_id."
 }
 ```
 
-> **CRITICAL:** Save the `api_key` immediately! It is shown only once and cannot be recovered.
+**Important:** The `payTo` address is **unique per request**. Always use the address returned by the API.
+
+### 3b. Send USDC Payment
+
+Send **exactly $5.00 USDC** on Base to the `payTo` address from step 3a.
+
+**Checklist:**
+- ✅ Exactly $5.00 USDC (not more, not less)
+- ✅ Base network (chain ID 8453)
+- ✅ To the `payTo` address from the API response
+- ✅ Save the `stripePaymentIntentId` for the next step
+
+### 3c. Complete Account Creation
+
+After the transaction confirms (~30 seconds on Base), retry with the `stripe_payment_intent_id`:
+
+```bash
+curl -s -X POST https://api.icme.io/v1/createUser \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "username":"your-username",
+    "stripe_payment_intent_id":"pi_3TWFBNIk3or7l4Yr2npI7nix"
+  }'
+```
+
+**Success response:**
+```json
+{
+  "user_id": "7c7ab46f-4597-4490-ab93-bce729b0cb34",
+  "username": "floe-devs",
+  "api_key": "sk-smt-floe-devs-d26d0ac324f04f7aa8bd5f5afcff6800",
+  "credits": 325,
+  "message": "Account created with 325 starting credits."
+}
+```
+
+> **⚠️ CRITICAL:** Save the `api_key` immediately! It is shown only once and cannot be recovered.
 
 ---
 
-## Step 4: Top Up Credits (Optional)
+## Step 4: Top Up Credits
 
-Add more credits using the same x402 flow:
-
-### 4a. Initial top-up request
+### 4a. Get top-up tiers and deposit address
 
 ```bash
-curl -s -X POST https://api.icme.io/v1/topUpX402 \
-  -H 'X-API-Key: YOUR_API_KEY' | jq .
+curl -s -X POST https://api.icme.io/v1/topUp \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Key: YOUR_API_KEY' \
+  -d '{"amount_usd": 10}'
 ```
 
-### 4b. Pay and retry
+**Example response:**
+```json
+{
+  "payTo": "0xc9c2745c74d56130c553e55fdbd128d3ec12c92f",
+  "stripePaymentIntentId": "pi_3TWGc0Ik3or7l4Yr24sdY58a",
+  "amountUsd": 10,
+  "creditsToAdd": 1050,
+  "currentCredits": 325
+}
+```
 
-Send $5 USDC to the `payTo` address, then retry with signature.
+### 4b. Send payment and complete
 
-**Credit tiers (via POST /v1/topUp for larger amounts):**
+Send the exact USDC amount to the `payTo` address, then retry:
+
+```bash
+curl -s -X POST https://api.icme.io/v1/topUp \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Key: YOUR_API_KEY' \
+  -d '{
+    "amount_usd": 10,
+    "stripe_payment_intent_id": "pi_3TWGc0Ik3or7l4Yr24sdY58a"
+  }'
+```
+
+### Credit Tiers
+
 | Amount | Credits | Bonus |
 |--------|---------|-------|
 | $5     | 500     | -     |
@@ -120,44 +178,21 @@ Send $5 USDC to the `payTo` address, then retry with signature.
 
 ---
 
-## Step 5: Verify the Account
-
-Check account status and balance:
-
-```bash
-curl -s https://api.icme.io/v1/me \
-  -H 'X-API-Key: YOUR_API_KEY' | jq .
-```
-
----
-
-## Step 6: Share with Floe Devs
+## Step 5: Share with Floe Devs
 
 Provide Floe developers with:
 
-1. **API Key:** `icme_xxxxxxxxxxxxxxxxxxxxxxxx`
-2. **Base URL:** `https://api.icme.io/v1`
-3. **Key endpoints:**
-   - `POST /v1/checkIt` - Run policy checks (1 credit each)
-   - `POST /v1/verifyProof` - Verify proofs (no auth needed)
-   - `GET /v1/me` - Check remaining credits
-
-**Example .env for their project:**
-```
-ICME_API_KEY=icme_xxxxxxxxxxxxxxxxxxxxxxxx
+**Environment variables:**
+```bash
+ICME_API_KEY=sk-smt-floe-devs-d26d0ac324f04f7aa8bd5f5afcff6800
 ICME_BASE_URL=https://api.icme.io/v1
 ```
 
----
-
-## Monitoring Usage
-
-Check remaining credits anytime:
-
-```bash
-curl -s https://api.icme.io/v1/me \
-  -H 'X-API-Key: YOUR_API_KEY' | jq '.credits'
-```
+**Key endpoints:**
+- `POST /v1/makeRules` - Compile a policy (300 credits)
+- `POST /v1/checkIt` - Run policy checks (1 credit)
+- `POST /v1/verifyProof` - Verify proofs (free, no auth)
+- `GET /v1/me` - Check remaining credits
 
 ---
 
@@ -168,7 +203,7 @@ Floe devs can compile their own policies using `makeRules`:
 ```bash
 curl -s -X POST https://api.icme.io/v1/makeRules \
   -H 'Content-Type: application/json' \
-  -H 'X-API-Key: YOUR_API_KEY' \
+  -H 'X-API-Key: sk-smt-floe-devs-d26d0ac324f04f7aa8bd5f5afcff6800' \
   -d '{
     "name": "floe-borrow-limits",
     "rules": [
@@ -179,7 +214,7 @@ curl -s -X POST https://api.icme.io/v1/makeRules \
   }'
 ```
 
-**Response includes:**
+**Response:**
 ```json
 {
   "policy_id": "pol_xxxxxxxx",
@@ -193,7 +228,7 @@ Then use the `policy_id` in `checkIt` calls:
 ```bash
 curl -s -X POST https://api.icme.io/v1/checkIt \
   -H 'Content-Type: application/json' \
-  -H 'X-API-Key: YOUR_API_KEY' \
+  -H 'X-API-Key: sk-smt-floe-devs-d26d0ac324f04f7aa8bd5f5afcff6800' \
   -d '{
     "policy_id": "pol_xxxxxxxx",
     "action": "Borrow $25,000 at 75% LTV for borrower with 700 credit score"
@@ -206,24 +241,34 @@ curl -s -X POST https://api.icme.io/v1/checkIt \
 
 | Endpoint | Auth | Cost | Returns |
 |----------|------|------|---------|
-| `createUserX402` | None | $5 USDC | API key + 325 credits |
-| `topUpX402` | API key | $5 USDC | +500 credits |
+| `createUser` | None | $5 USDC | API key + 325 credits |
 | `topUp` | API key | $5-100 USDC | Tiered credits |
 | `makeRules` | API key | 300 credits | policy_id |
 | `checkIt` | API key | 1 credit | SAT/UNSAT + proof_id |
 | `verifyProof` | None | Free | Proof verification |
+| `me` | API key | Free | Account info + balance |
 
 ---
 
 ## Troubleshooting
 
-**"Payment not found"** - Wait for Base transaction to confirm (usually <2 min)
+**"Payment not yet received"** - Wait for Base transaction to confirm (~30 seconds), then retry
 
-**"Invalid signature"** - Ensure you're using the signature from the correct transaction
+**"PAYMENT_NOT_VERIFIED"** - Transaction may still be pending. Wait 1-2 minutes and retry.
 
 **"Insufficient funds"** - Check USDC balance on Base (not ETH, not other networks)
 
 **API key lost** - Cannot be recovered. Must create a new account.
+
+**Wrong address** - Each API request generates a unique `payTo` address. Always use the one from your current request.
+
+---
+
+## Transaction History (floe-devs account)
+
+| Date | Action | Amount | Tx Hash | Credits |
+|------|--------|--------|---------|---------|
+| 2025-05-12 | Account creation | $5 USDC | `0xfd0d461c7716c6ee8ec8d71219014d64c9d1f0579c391fbc09b32264cb374e0a` | +325 |
 
 ---
 
@@ -233,3 +278,4 @@ curl -s -X POST https://api.icme.io/v1/checkIt \
 - [ICME API Reference](https://api.icme.io/openapi.json)
 - [Base Bridge](https://bridge.base.org)
 - [BaseScan](https://basescan.org) - Check transactions
+- [USDC on Base](https://basescan.org/token/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
