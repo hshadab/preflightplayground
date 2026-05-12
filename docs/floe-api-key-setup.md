@@ -2,6 +2,78 @@
 
 This guide walks through creating and funding an ICME Preflight API key that you can share with Floe developers.
 
+## How It Works
+
+### No Login Required
+
+ICME is an **API-only service**. There is no website to log into, no dashboard, no UI. Everything is done via API calls. The **API key IS your account** - whoever has the key can use the credits.
+
+### The Two "Wallets" Explained
+
+There are two separate things that might look like wallets:
+
+1. **Your funding wallet** (e.g., MetaMask/Coinbase Wallet)
+   - This is YOUR crypto wallet where you hold USDC
+   - You use it once to pay for account creation and top-ups
+   - After paying, you don't need it anymore (unless topping up again)
+
+2. **ICME's payment addresses** (e.g., `0xca3c...`, `0xc9c2...`)
+   - These are ICME's receiving addresses
+   - They generate a NEW unique address for each payment request
+   - You send USDC to these addresses to fund your ICME account
+   - These are NOT your wallets - they're ICME's
+
+### Account Creation Flow
+
+```
+┌─────────────────┐      $5 USDC       ┌─────────────────┐
+│  Your Wallet    │ ─────────────────► │  ICME Payment   │
+│  (MetaMask)     │                    │  Address        │
+└─────────────────┘                    └────────┬────────┘
+                                                │
+                                                ▼
+                                       ┌─────────────────┐
+                                       │  ICME creates   │
+                                       │  API key +      │
+                                       │  325 credits    │
+                                       └────────┬────────┘
+                                                │
+                                                ▼
+                                       ┌─────────────────┐
+                                       │  You get:       │
+                                       │  sk-smt-xxx...  │
+                                       └─────────────────┘
+```
+
+### What Floe Devs Need
+
+**Just the API key.** That's it. No wallet, no login, no USDC.
+
+```bash
+ICME_API_KEY=sk-smt-floe-devs-d26d0ac324f04f7aa8bd5f5afcff6800
+```
+
+They use this key in their code to call ICME's API. Each API call deducts from the prepaid credits. When credits run low, you (the funder) top up again.
+
+### Going Forward
+
+| Who | What they do |
+|-----|--------------|
+| **You (funder)** | Monitor credits, top up when needed |
+| **Floe devs** | Use the API key in their code, call `makeRules`, `checkIt`, etc. |
+
+**Floe devs don't need:**
+- ❌ A wallet
+- ❌ USDC
+- ❌ To log in anywhere
+- ❌ To create their own account
+
+**Floe devs just need:**
+- ✅ The API key
+- ✅ The API base URL (`https://api.icme.io/v1`)
+
+---
+
 ## Floe Devs API Key (Already Created)
 
 ```bash
