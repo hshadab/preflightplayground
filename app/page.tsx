@@ -367,11 +367,6 @@ export default function Page() {
   const initialPresetIdxRef = useRef<number>(0);
   const didAutofireRef = useRef(false);
 
-  // ---- wizard step state -------------------------------------------------
-  // 'policy' = choose policy, 'preset' = choose scenario, 'results' = show check results
-  const [wizardStep, setWizardStep] = useState<'policy' | 'preset' | 'results'>('policy');
-  const [selectedPreset, setSelectedPreset] = useState<Preset | null>(null);
-
   // ---- core demo state ---------------------------------------------------
   const [selectedPolicyId, setSelectedPolicyId] = useState<string>("spending");
   const [activePreset, setActivePreset] = useState<Preset | null>(null);
@@ -685,7 +680,6 @@ export default function Page() {
 
   function selectPolicy(id: string) {
     setSelectedPolicyId(id);
-    setSelectedPreset(null);
     setActivePreset(null);
     setCheck(null);
     setCheckError(null);
@@ -694,47 +688,20 @@ export default function Page() {
     setProofReady(false);
     setProofTimedOut(false);
     setTab("decision");
-    setWizardStep('preset');
   }
 
-  function selectPreset(preset: Preset) {
-    setSelectedPreset(preset);
-  }
-
-  function executeCheck() {
-    if (!selectedPreset) return;
-    setWizardStep('results');
-    runCheck(selectedPreset);
-  }
-
-  function resetWizard() {
-    setWizardStep('policy');
-    setSelectedPreset(null);
-    setActivePreset(null);
-    setCheck(null);
-    setCheckError(null);
-    setVerify(null);
-    setVerifyError(null);
-    setProofReady(false);
-    setProofTimedOut(false);
-  }
-
-  // ---- auto-fire removed: now using wizard flow --------------------------
-  // Users must explicitly select policy → preset → click "Run Check"
-  // Deep-links with ?policy=&preset= still work via the URL processing below,
-  // but we skip to results step if both are present.
+  // ---- deep-link auto-fire: if ?policy=&preset= present, run that check --
+  // Otherwise demo starts idle until user clicks a preset.
   useEffect(() => {
     if (!didProcessUrl) return;
     if (didAutofireRef.current) return;
     if (shareView) return;
-    // If deep-linked with both policy and preset, auto-advance to preset step
     const sp = new URLSearchParams(window.location.search);
     if (sp.get("policy") && sp.get("preset")) {
       const idx = initialPresetIdxRef.current;
       const preset = policy.presets[idx] ?? policy.presets[0];
       if (preset) {
-        setSelectedPreset(preset);
-        setWizardStep('preset');
+        runCheck(preset);
       }
     }
     didAutofireRef.current = true;
@@ -785,7 +752,7 @@ export default function Page() {
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="text-xs font-semibold uppercase tracking-widest text-[#346DDB]">Preflight live demo</div>
             <HealthDot status={health} latencyMs={healthLatency} />
-            {effectiveReplay && wizardStep === 'results' && (
+            {effectiveReplay && (
               <span className="inline-flex items-center gap-1 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] text-amber-800">
                 <span className="h-2 w-2 rounded-full bg-amber-500" />
                 Replay mode {policyConfigured ? "(toggle: r)" : "(no compiled policy_id)"}
@@ -795,26 +762,11 @@ export default function Page() {
           <h1 className="mt-1 text-xl font-semibold text-stone-900 sm:text-3xl">
             Cryptographic receipts for AI agent actions.
           </h1>
-          {wizardStep === 'policy' && (
-            <p className="mt-3 max-w-3xl text-sm text-stone-600">
-              AI agents are starting to spend real money, refund customers, access regulated data, and message
-              customers on behalf of companies. See how Preflight blocks rule-breaking actions and proves
-              compliant ones with cryptographic receipts. <strong>Choose a policy domain to start.</strong>
-            </p>
-          )}
-          {wizardStep === 'preset' && (
-            <p className="mt-3 max-w-3xl text-sm text-stone-600">
-              You selected <strong>{policy.longName}</strong>. Now pick a scenario to test against this policy.
-              Each scenario represents an agent action that will be evaluated.
-            </p>
-          )}
-          {wizardStep === 'results' && (
-            <p className="mt-3 max-w-3xl text-sm text-stone-600">
-              Every action runs through a preflight check: SAT clears the agent to execute, UNSAT
-              blocks the action before any side effect fires, and either outcome ships with a SNARK
-              an auditor can verify in milliseconds.
-            </p>
-          )}
+          <p className="mt-3 max-w-3xl text-sm text-stone-600">
+            Every action runs through a preflight check: SAT clears the agent to execute, UNSAT
+            blocks the action before any side effect fires, and either outcome ships with a SNARK
+            an auditor can verify in milliseconds. <strong>Choose a policy, then click a scenario to start.</strong>
+          </p>
         </div>
         <a href="https://icme.io" target="_blank" rel="noreferrer" className="shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -825,158 +777,6 @@ export default function Page() {
           />
         </a>
       </header>
-
-      {/* Wizard Step Indicator */}
-      {wizardStep !== 'results' && (
-        <div className="mb-6 flex items-center justify-center gap-2">
-          <div className={`flex items-center gap-2 ${wizardStep === 'policy' ? 'text-[#346DDB]' : 'text-stone-400'}`}>
-            <span className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold ${wizardStep === 'policy' ? 'bg-[#346DDB] text-white' : 'bg-stone-200 text-stone-500'}`}>1</span>
-            <span className="text-sm font-medium">Choose Policy</span>
-          </div>
-          <div className="h-px w-8 bg-stone-300" />
-          <div className={`flex items-center gap-2 ${wizardStep === 'preset' ? 'text-[#346DDB]' : 'text-stone-400'}`}>
-            <span className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold ${wizardStep === 'preset' ? 'bg-[#346DDB] text-white' : 'bg-stone-200 text-stone-500'}`}>2</span>
-            <span className="text-sm font-medium">Pick Scenario</span>
-          </div>
-          <div className="h-px w-8 bg-stone-300" />
-          <div className="flex items-center gap-2 text-stone-400">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-stone-200 text-sm font-semibold text-stone-500">3</span>
-            <span className="text-sm font-medium">Run Check</span>
-          </div>
-        </div>
-      )}
-
-      {/* Step 1: Choose Policy */}
-      {wizardStep === 'policy' && (
-        <div className="mx-auto max-w-4xl">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {POLICIES.map((p) => {
-              const isLive = Boolean(ENV_POLICY_IDS[p.id]);
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => selectPolicy(p.id)}
-                  className="group rounded-xl border-2 border-stone-200 bg-white p-5 text-left transition hover:border-[#346DDB] hover:shadow-lg"
-                >
-                  <div className="mb-3 flex items-start justify-between">
-                    <div className="text-2xl">
-                      {p.id === 'spending' && '💰'}
-                      {p.id === 'refunds' && '↩️'}
-                      {p.id === 'data-access' && '🔒'}
-                      {p.id === 'procurement' && '📋'}
-                    </div>
-                    <span
-                      className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                        isLive ? "bg-emerald-100 text-emerald-800" : "bg-stone-100 text-stone-600"
-                      }`}
-                    >
-                      {isLive ? "live" : "replay"}
-                    </span>
-                  </div>
-                  <div className="text-base font-semibold text-stone-900 group-hover:text-[#346DDB]">{p.shortName}</div>
-                  <div className="mt-1 text-sm text-stone-600">{p.longName}</div>
-                  <div className="mt-2 text-xs text-stone-500">{p.clauses.length} clauses &middot; {p.audience}</div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Step 2: Pick Scenario */}
-      {wizardStep === 'preset' && (
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-4 flex items-center justify-between">
-            <button
-              onClick={() => setWizardStep('policy')}
-              className="flex items-center gap-1 text-sm text-stone-500 hover:text-stone-700"
-            >
-              <span>&larr;</span> Back to policies
-            </button>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-stone-500">Selected:</span>
-              <span className="rounded bg-blue-50 px-2 py-1 text-sm font-medium text-[#346DDB]">{policy.shortName}</span>
-            </div>
-          </div>
-
-          <div className="mb-6 rounded-lg border border-stone-200 bg-stone-50 p-4">
-            <div className="text-xs font-semibold uppercase tracking-wider text-stone-500">Policy clauses</div>
-            <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs text-stone-600">
-              {policy.clauses.map((clause, i) => (
-                <li key={i}>{clause}</li>
-              ))}
-            </ol>
-          </div>
-
-          <div className="mb-4 text-sm font-medium text-stone-700">Choose a scenario to test:</div>
-          <div className="space-y-3">
-            {policy.presets.map((preset) => {
-              const isSelected = selectedPreset?.label === preset.label;
-              return (
-                <button
-                  key={preset.label}
-                  onClick={() => selectPreset(preset)}
-                  className={`block w-full rounded-xl border-2 p-4 text-left transition ${
-                    isSelected
-                      ? "border-[#346DDB] bg-blue-50 shadow-md"
-                      : "border-stone-200 bg-white hover:border-stone-300 hover:shadow"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`rounded px-2 py-0.5 text-xs font-semibold ${
-                            preset.expected === "SAT"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-rose-100 text-rose-800"
-                          }`}
-                        >
-                          {preset.expected === "SAT" ? "Should PASS" : "Should FAIL"}
-                        </span>
-                      </div>
-                      <div className="mt-2 text-sm font-medium text-stone-900">{preset.label}</div>
-                      <div className="mt-1 text-xs text-stone-500">{preset.blurb}</div>
-                    </div>
-                    <div className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${
-                      isSelected ? "border-[#346DDB] bg-[#346DDB]" : "border-stone-300"
-                    }`}>
-                      {isSelected && <span className="text-white text-sm">✓</span>}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="mt-6 flex justify-center">
-            <button
-              onClick={executeCheck}
-              disabled={!selectedPreset}
-              className="rounded-lg bg-[#346DDB] px-8 py-3 text-base font-semibold text-white shadow-lg transition hover:bg-[#2756b8] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              ▶ Run Preflight Check
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Step 3: Results - show existing grid layout */}
-      {wizardStep === 'results' && (
-        <>
-          <div className="mb-4 flex items-center gap-4">
-            <button
-              onClick={resetWizard}
-              className="flex items-center gap-1 text-sm text-stone-500 hover:text-stone-700"
-            >
-              <span>&larr;</span> Start over
-            </button>
-            <div className="flex items-center gap-2 text-sm text-stone-500">
-              <span className="rounded bg-blue-50 px-2 py-1 font-medium text-[#346DDB]">{policy.shortName}</span>
-              <span>&rarr;</span>
-              <span className="rounded bg-stone-100 px-2 py-1 text-stone-700">{activePreset?.label.slice(0, 30)}...</span>
-            </div>
-          </div>
 
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
         {/* LEFT COLUMN: policy library + presets, sticky on desktop */}
@@ -1458,8 +1258,6 @@ export default function Page() {
         </a>
         .
       </footer>
-        </>
-      )}
     </main>
   );
 }
