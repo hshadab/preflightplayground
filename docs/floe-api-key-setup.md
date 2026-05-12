@@ -269,6 +269,9 @@ curl -s -X POST https://api.icme.io/v1/checkIt \
 | Date | Action | Amount | Tx Hash | Credits |
 |------|--------|--------|---------|---------|
 | 2025-05-12 | Account creation | $5 USDC | `0xfd0d461c7716c6ee8ec8d71219014d64c9d1f0579c391fbc09b32264cb374e0a` | +325 |
+| 2025-05-12 | Top-up (5% bonus) | $10 USDC | `0x099371cd3d989fe7314f4dedd5130f91ff13157e6e63e3bdd3f42e9fe5ccf010` | +1,050 |
+
+**Current balance: 1,375 credits**
 
 ---
 
