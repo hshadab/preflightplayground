@@ -11,10 +11,14 @@ interface CheckItSseEvent {
   step?: string;
   result?: string;
   z3_result?: string;
+  ar_result?: string;
   detail?: string;
   zk_proof_id?: string;
   proof_id?: string;
   check_id?: string;
+  extracted?: Record<string, unknown>;
+  violated_rule?: number;
+  verification_time_ms?: number;
 }
 
 interface CheckResponse {
@@ -24,6 +28,11 @@ interface CheckResponse {
   proof_id?: string;
   check_id?: string;
   elapsed_ms: number;
+  extracted?: Record<string, unknown>;
+  violated_rule?: number;
+  z3_result?: string;
+  ar_result?: string;
+  verification_time_ms?: number;
 }
 
 const BASE_URL = process.env.ICME_BASE_URL ?? "https://api.icme.io/v1";
@@ -117,6 +126,11 @@ export async function POST(req: NextRequest) {
     proof_id: event.zk_proof_id ?? event.proof_id,
     check_id: event.check_id,
     elapsed_ms: Date.now() - start,
+    extracted: event.extracted,
+    violated_rule: event.violated_rule,
+    z3_result: event.z3_result,
+    ar_result: event.ar_result,
+    verification_time_ms: event.verification_time_ms,
   };
 
   return NextResponse.json(response);

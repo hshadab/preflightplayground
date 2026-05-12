@@ -59,6 +59,11 @@ interface CheckResponse {
   proof_id?: string;
   check_id?: string;
   elapsed_ms: number;
+  extracted?: Record<string, unknown>;
+  violated_rule?: number;
+  z3_result?: string;
+  ar_result?: string;
+  verification_time_ms?: number;
 }
 
 interface VerifyResponse {
@@ -1075,6 +1080,10 @@ export default function Page() {
                         reason: check.reason,
                         proof_id: check.proof_id,
                         check_id: check.check_id,
+                        ...(check.z3_result && { z3_result: check.z3_result }),
+                        ...(check.ar_result && { ar_result: check.ar_result }),
+                        ...(check.violated_rule !== undefined && { violated_rule: check.violated_rule }),
+                        ...(check.extracted && Object.keys(check.extracted).length > 0 && { extracted: check.extracted }),
                       }}
                       curlNote={
                         <>
@@ -1242,7 +1251,7 @@ export default function Page() {
 // ---------- Decision pipeline (Step 1 visual) ------------------------------
 
 function DecisionPipeline() {
-  const stages = ["parse intent", "Z3 solver", "automated reasoning"];
+  const stages = ["extract variables", "Z3 solver", "AR engine", "reconcile"];
   const [active, setActive] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setActive((i) => (i + 1) % stages.length), 700);
@@ -1350,23 +1359,46 @@ function DecisionTabContent({
             <div className="text-[10px] uppercase tracking-wider text-stone-500">
               Step 1 of 2 &middot; Decision {replay && <span className="ml-1 text-amber-700">(replay)</span>}
             </div>
-            <div className="text-[10px] uppercase tracking-wider text-stone-400">parse &rarr; Z3 &rarr; AR</div>
+            <div className="text-[10px] uppercase tracking-wider text-stone-400">extract &rarr; Z3 + AR &rarr; reconcile</div>
           </div>
           <div className="flex items-center justify-between">
-            <div
-              className={`inline-block rounded px-2 py-1 text-xs font-semibold uppercase tracking-wider ${
-                check.result === "SAT"
-                  ? "bg-emerald-100 text-emerald-800"
-                  : "bg-rose-100 text-rose-800"
-              }`}
-            >
-              {check.result}
-              {check.blocked ? " (blocked)" : " (allowed)"}
+            <div className="flex items-center gap-2">
+              <div
+                className={`inline-block rounded px-2 py-1 text-xs font-semibold uppercase tracking-wider ${
+                  check.result === "SAT"
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-rose-100 text-rose-800"
+                }`}
+              >
+                {check.result}
+                {check.blocked ? " (blocked)" : " (allowed)"}
+              </div>
+              {/* Show dual-path results if available */}
+              {(check.z3_result || check.ar_result) && (
+                <div className="flex gap-1 text-[10px]">
+                  {check.z3_result && (
+                    <span className={`rounded px-1.5 py-0.5 ${check.z3_result === "SAT" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
+                      Z3: {check.z3_result}
+                    </span>
+                  )}
+                  {check.ar_result && (
+                    <span className={`rounded px-1.5 py-0.5 ${check.ar_result === "SAT" || check.ar_result === "VALID" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
+                      AR: {check.ar_result}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
             <div className="text-xs text-stone-500">{formatMs(check.elapsed_ms)}</div>
           </div>
           {check.reason && (
             <div className="mt-3 text-sm text-stone-700">{normalizeReason(check.reason, check.result)}</div>
+          )}
+          {/* Show violated rule number for UNSAT */}
+          {check.result === "UNSAT" && check.violated_rule !== undefined && (
+            <div className="mt-2 text-xs text-rose-700">
+              <span className="font-medium">Violated rule:</span> Clause {check.violated_rule}
+            </div>
           )}
 
           {activePreset && (
@@ -1406,23 +1438,27 @@ function DecisionTabContent({
                 summary={
                   <span>
                     <span className="font-semibold text-stone-900">How SAT/UNSAT is computed</span>
-                    <span className="ml-2 text-stone-500">parse &rarr; Z3 &rarr; AR</span>
+                    <span className="ml-2 text-stone-500">extract &rarr; dual-path verify &rarr; reconcile</span>
                   </span>
                 }
               >
                 <ol className="list-decimal space-y-2 pl-4 text-stone-600">
                   <li>
-                    <span className="text-stone-900">Parse intent.</span> The natural-language action
-                    string is parsed into structured constraints (amount, vendor, justification, totals).
+                    <span className="text-stone-900">Variable extraction.</span> An LLM extracts relevant
+                    values from the action text (amounts, recipients, justifications, etc.) into structured form.
                   </li>
                   <li>
-                    <span className="text-stone-900">Z3 solver.</span> The structural constraints are
-                    checked against the policy as a satisfiability problem. Returns SAT or UNSAT.
+                    <span className="text-stone-900">Dual-path verification.</span> Two independent engines
+                    evaluate the action in parallel:
+                    <ul className="mt-1 list-disc pl-4 text-[11px]">
+                      <li><span className="font-medium">Z3 SMT solver</span> &mdash; checks extracted values against formal policy constraints</li>
+                      <li><span className="font-medium">Cloud AR engine</span> &mdash; independently evaluates via AWS automated reasoning</li>
+                    </ul>
                   </li>
                   <li>
-                    <span className="text-stone-900">Automated reasoning (AR).</span> A second engine
-                    re-checks the action against the natural-language policy semantics, catching
-                    violations Z3 cannot model. If Z3 and AR disagree, the system fails closed.
+                    <span className="text-stone-900">Reconciliation.</span> Both paths must return SAT for
+                    clearance. If either returns UNSAT, the action is blocked. This redundancy ensures a
+                    single extraction error or reasoning gap cannot produce a false clearance.
                   </li>
                 </ol>
                 <p className="mt-3 text-[11px] text-stone-500">
