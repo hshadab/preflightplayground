@@ -98,13 +98,32 @@ const PROCUREMENT_CLAUSES = [
   "PO approver must be a distinct identity from the requester, must sit in the requesting cost center's approval chain, and must hold sufficient delegated authority. Any PO ≥ $100,000 requires a second approver at Controller level or above.",
 ];
 
-// A short, deterministic "looks-real" UUID used in replays. The receipt
-// labelling in the UI will say "REPLAY" so this is never confused with a
-// live proof id.
-const REPLAY_UUID = (n: number) =>
-  `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const REPLAY_HASH = (label: string) =>
-  "0x" + Array.from(label).reduce((a, c) => (a * 33 + c.charCodeAt(0)) >>> 0, 5381).toString(16).padStart(8, "0").repeat(8);
+// Deterministic pseudo-random generator for realistic-looking replay data.
+// The UI labels replays clearly so these are never confused with live proofs.
+function mulberry32(seed: number) {
+  return () => {
+    let t = (seed += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const REPLAY_UUID = (n: number) => {
+  const rng = mulberry32(n * 31337);
+  const hex = (len: number) =>
+    Array.from({ length: len }, () => Math.floor(rng() * 16).toString(16)).join("");
+  // UUIDv4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx (y = 8,9,a,b)
+  const y = ["8", "9", "a", "b"][Math.floor(rng() * 4)];
+  return `${hex(8)}-${hex(4)}-4${hex(3)}-${y}${hex(3)}-${hex(12)}`;
+};
+
+const REPLAY_HASH = (label: string) => {
+  // Generate a realistic 64-char hex hash from the label
+  const seed = Array.from(label).reduce((a, c) => (a * 33 + c.charCodeAt(0)) >>> 0, 5381);
+  const rng = mulberry32(seed);
+  return "0x" + Array.from({ length: 64 }, () => Math.floor(rng() * 16).toString(16)).join("");
+};
 
 export const POLICIES: Policy[] = [
   {

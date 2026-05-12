@@ -417,12 +417,13 @@ export default function Page() {
   // run rather than calling the live API. Auto-flipped to true if the
   // policy has no compiled policy_id.
   const [showPresenter, setShowPresenter] = useState(false);
+  const [replayMode, setReplayMode] = useState(false);
 
   // ---- derived ----------------------------------------------------------
   const policy = policyById(selectedPolicyId) ?? POLICIES[0];
   const policyId = ENV_POLICY_IDS[policy.id] ?? "";
   const policyConfigured = Boolean(policyId);
-  const effectiveReplay = !policyConfigured;
+  const effectiveReplay = !policyConfigured || replayMode;
 
   // ---- deep-link reader: hydrate state from ?policy=&preset= -------------
   // Runs once. Skipped entirely when a #share= hash is present, since that
@@ -478,7 +479,7 @@ export default function Page() {
     };
   }, []);
 
-  // ---- hotkeys: '?' presenter notes, 'r' replay, esc close ---------------
+  // ---- hotkeys: '?' presenter notes, 'r' replay, esc close, '1'/'2'/'3' presets
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       // Ignore when typing in inputs.
@@ -489,11 +490,21 @@ export default function Page() {
         setShowPresenter((v) => !v);
       } else if (e.key === "Escape") {
         setShowPresenter(false);
+      } else if (e.key === "r" || e.key === "R") {
+        setReplayMode((v) => !v);
+      }
+      // Preset shortcuts: 1, 2, 3
+      if (e.key >= "1" && e.key <= "9") {
+        const idx = parseInt(e.key, 10) - 1;
+        if (idx < policy.presets.length && !checkLoading) {
+          e.preventDefault();
+          runCheck(policy.presets[idx]);
+        }
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [policy, checkLoading]);
 
   // ---- proof polling with hard timeout + retry --------------------------
   const pollAbortRef = useRef<{ cancel: () => void } | null>(null);
@@ -1228,6 +1239,42 @@ export default function Page() {
   );
 }
 
+// ---------- Decision pipeline (Step 1 visual) ------------------------------
+
+function DecisionPipeline() {
+  const stages = ["parse intent", "Z3 solver", "automated reasoning"];
+  const [active, setActive] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setActive((i) => (i + 1) % stages.length), 700);
+    return () => clearInterval(id);
+  }, [stages.length]);
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+      {stages.map((label, i) => {
+        const isActive = i === active;
+        const isPast = i < active;
+        return (
+          <span
+            key={label}
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors ${
+              isActive
+                ? "border-[#346DDB] bg-[#346DDB] text-white"
+                : isPast
+                ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                : "border-stone-300 bg-white text-stone-500"
+            }`}
+          >
+            <span className="font-mono text-[10px]">
+              {isPast ? "\u2713" : isActive ? "\u25CF" : "\u25CB"}
+            </span>
+            {label}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 // ---------- Decision tab content (extracted to keep the page bearable) -----
 
 function DecisionTabContent({
@@ -1280,9 +1327,15 @@ function DecisionTabContent({
       )}
       {checkLoading && (
         <div className="text-sm text-stone-600">
-          <div className="mb-1 text-[10px] uppercase tracking-wider text-stone-500">Step 1 of 2 &middot; Decision</div>
-          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[#346DDB] align-middle" />{" "}
-          Computing SAT/UNSAT: parsing intent &rarr; Z3 solver &rarr; automated reasoning&hellip;
+          <div className="mb-2 text-[10px] uppercase tracking-wider text-stone-500">Step 1 of 2 &middot; Decision</div>
+          <div className="flex items-center gap-2">
+            <span className="relative inline-flex h-3 w-3">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#346DDB] opacity-75" />
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-[#346DDB]" />
+            </span>
+            <span>Computing SAT/UNSAT&hellip;</span>
+          </div>
+          <DecisionPipeline />
         </div>
       )}
       {checkError && (

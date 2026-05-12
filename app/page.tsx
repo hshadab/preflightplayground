@@ -195,55 +195,48 @@ function ArchitectureDiagram() {
   );
 }
 
-function PresenterNotes({ policy }: { policy: Policy }) {
+function PresenterNotesContent({ policy }: { policy: Policy }) {
   return (
-    <section className="rounded-lg border border-stone-200 bg-white p-4 sm:p-5">
-      <div className="mb-4">
-        <div className="text-[10px] uppercase tracking-widest text-[#346DDB]">Presenter notes</div>
-        <div className="text-sm font-semibold text-stone-900">{policy.longName}</div>
-        <div className="text-[11px] text-stone-500">Audience: {policy.audience}</div>
+    <div className="grid gap-5 text-xs text-stone-700 md:grid-cols-3">
+      <div>
+        <div className="mb-1 font-semibold text-stone-900">Talking points</div>
+        <ul className="space-y-2 pl-4">
+          {policy.presenterNotes.map((note, i) => (
+            <li key={i} className="list-disc text-stone-600">
+              {note}
+            </li>
+          ))}
+        </ul>
       </div>
-      <div className="grid gap-5 text-xs text-stone-700 md:grid-cols-3">
-        <div>
-          <div className="mb-1 font-semibold text-stone-900">Talking points</div>
-          <ul className="space-y-2 pl-4">
-            {policy.presenterNotes.map((note, i) => (
-              <li key={i} className="list-disc text-stone-600">
-                {note}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <div className="mb-1 font-semibold text-stone-900">Suggested order</div>
-          <ol className="list-decimal space-y-1 pl-4 text-stone-600">
-            {policy.presets.map((p) => (
-              <li key={p.label}>
-                <span className="font-medium text-stone-900">{p.expected}:</span> {p.label}
-              </li>
-            ))}
-          </ol>
-        </div>
-        <div>
-          <div className="mb-1 font-semibold text-stone-900">Common objections</div>
-          <ul className="space-y-2 pl-4 text-stone-600">
-            <li className="list-disc">
-              <span className="font-medium text-stone-900">&ldquo;Why not just write code?&rdquo;</span>{" "}
-              The receipt is a portable, third-party-verifiable artifact. Hand-rolled rules can&rsquo;t
-              produce one.
+      <div>
+        <div className="mb-1 font-semibold text-stone-900">Suggested order</div>
+        <ol className="list-decimal space-y-1 pl-4 text-stone-600">
+          {policy.presets.map((p) => (
+            <li key={p.label}>
+              <span className="font-medium text-stone-900">{p.expected}:</span> {p.label}
             </li>
-            <li className="list-disc">
-              <span className="font-medium text-stone-900">&ldquo;Why ZK?&rdquo;</span> So the auditor /
-              counterparty can verify the decision without seeing your inputs or your policy text.
-            </li>
-            <li className="list-disc">
-              <span className="font-medium text-stone-900">&ldquo;Latency?&rdquo;</span> Sub-second
-              decision; SNARK seal happens in the background; verify is single-digit milliseconds.
-            </li>
-          </ul>
-        </div>
+          ))}
+        </ol>
       </div>
-    </section>
+      <div>
+        <div className="mb-1 font-semibold text-stone-900">Common objections</div>
+        <ul className="space-y-2 pl-4 text-stone-600">
+          <li className="list-disc">
+            <span className="font-medium text-stone-900">&ldquo;Why not just write code?&rdquo;</span>{" "}
+            The receipt is a portable, third-party-verifiable artifact. Hand-rolled rules can&rsquo;t
+            produce one.
+          </li>
+          <li className="list-disc">
+            <span className="font-medium text-stone-900">&ldquo;Why ZK?&rdquo;</span> So the auditor /
+            counterparty can verify the decision without seeing your inputs or your policy text.
+          </li>
+          <li className="list-disc">
+            <span className="font-medium text-stone-900">&ldquo;Latency?&rdquo;</span> Sub-second
+            decision; SNARK seal happens in the background; verify is single-digit milliseconds.
+          </li>
+        </ul>
+      </div>
+    </div>
   );
 }
 
@@ -455,7 +448,7 @@ export default function Page() {
     };
   }, []);
 
-  // ---- hotkeys: 'r' replay -----------------------------------------------
+  // ---- hotkeys: 'r' replay, '1'/'2'/'3' presets ---------------------------
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       // Ignore when typing in inputs.
@@ -464,10 +457,18 @@ export default function Page() {
       if (e.key === "r" || e.key === "R") {
         setReplayMode((v) => !v);
       }
+      // Preset shortcuts: 1, 2, 3
+      if (e.key >= "1" && e.key <= "9") {
+        const idx = parseInt(e.key, 10) - 1;
+        if (idx < policy.presets.length && !checkLoading) {
+          e.preventDefault();
+          runCheck(policy.presets[idx]);
+        }
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [policy, checkLoading]);
 
   // ---- proof polling with hard timeout + retry --------------------------
   const pollAbortRef = useRef<{ cancel: () => void } | null>(null);
@@ -1229,9 +1230,18 @@ export default function Page() {
         <ArchitectureDiagram />
       </div>
 
-      {/* Presenter notes (always visible below the fold) */}
+      {/* Presenter notes (collapsed by default, expand via disclosure) */}
       <div className="mt-8">
-        <PresenterNotes policy={policy} />
+        <Disclosure
+          summary={
+            <span>
+              <span className="font-semibold uppercase tracking-wider text-stone-900">Presenter notes</span>
+              <span className="ml-2 text-stone-500">{policy.longName} &middot; talking points, suggested order, objections</span>
+            </span>
+          }
+        >
+          <PresenterNotesContent policy={policy} />
+        </Disclosure>
       </div>
 
       <footer className="mt-12 border-t border-stone-200 pt-6 text-xs text-stone-500">

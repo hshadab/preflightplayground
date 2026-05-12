@@ -80,12 +80,32 @@ const LIQUIDATION_CLAUSES = [
   "Liquidation must not be a malicious low-value action: expectedProfit USD must be > MIN_PROFIT_USD floor (default 10 USD).",
 ];
 
-// Stable, "looks-real" UUIDs and policy hashes for replay. The UI tags every
-// replay receipt with "REPLAY" so this is never confused with a live proof_id.
-const REPLAY_UUID = (n: number) =>
-  `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const REPLAY_HASH = (label: string) =>
-  "0x" + Array.from(label).reduce((a, c) => (a * 33 + c.charCodeAt(0)) >>> 0, 5381).toString(16).padStart(8, "0").repeat(8);
+// Deterministic pseudo-random generator for realistic-looking replay data.
+// The UI labels replays clearly so these are never confused with live proofs.
+function mulberry32(seed: number) {
+  return () => {
+    let t = (seed += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const REPLAY_UUID = (n: number) => {
+  const rng = mulberry32(n * 31337);
+  const hex = (len: number) =>
+    Array.from({ length: len }, () => Math.floor(rng() * 16).toString(16)).join("");
+  // UUIDv4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx (y = 8,9,a,b)
+  const y = ["8", "9", "a", "b"][Math.floor(rng() * 4)];
+  return `${hex(8)}-${hex(4)}-4${hex(3)}-${y}${hex(3)}-${hex(12)}`;
+};
+
+const REPLAY_HASH = (label: string) => {
+  // Generate a realistic 64-char hex hash from the label
+  const seed = Array.from(label).reduce((a, c) => (a * 33 + c.charCodeAt(0)) >>> 0, 5381);
+  const rng = mulberry32(seed);
+  return "0x" + Array.from({ length: 64 }, () => Math.floor(rng() * 16).toString(16)).join("");
+};
 
 export const POLICIES: Policy[] = [
   {
@@ -393,6 +413,33 @@ export const POLICIES: Policy[] = [
           verify: {
             valid: true,
             verify_ms: 46,
+            proof_bytes_len: 92160,
+            policy_hash: REPLAY_HASH("verifiable-liquidation"),
+            claimed_result: "UNSAT",
+          },
+        },
+      },
+      {
+        label: "Liquidation attempt on healthy loan (LTV below threshold)",
+        expected: "UNSAT",
+        blurb: "Loan is not underwater — currentLtvBps is below liquidationLtvBps. Blocked outright.",
+        action:
+          "Liquidator bot 0xLBOT03 calls liquidateLoan(loanId=0xLN_CCC3). Loan facts: collateral=5 ETH, debt=9,500 USDC, currentLtvBps=7,600, liquidationLtvBps=8,500. " +
+          "Oracle ETH/USD reading at T-8s, age 8s. Deviation between latest and prior reading = 42 bps. Base sequencer continuously online for 86,400s (24h). " +
+          "Expected USD profit = 420; MIN_PROFIT_USD = 10.",
+        clauses: [
+          { num: 1, status: "fail", note: "currentLtvBps 7,600 <= liquidationLtvBps 8,500 (loan NOT underwater)" },
+          { num: 2, status: "pass", note: "deviation 42 bps < 1,500; sequencer up 86,400s >= 3,600; oracle age 8s <= 3,600" },
+          { num: 3, status: "pass", note: "expectedProfit $420 > MIN_PROFIT_USD $10" },
+        ],
+        replay: {
+          proof_id: REPLAY_UUID(3103),
+          reason: "Action violates the policy. The loan is not underwater — currentLtvBps is below the liquidation threshold.",
+          elapsed_ms: 388,
+          proof_gen_seconds: 6,
+          verify: {
+            valid: true,
+            verify_ms: 42,
             proof_bytes_len: 92160,
             policy_hash: REPLAY_HASH("verifiable-liquidation"),
             claimed_result: "UNSAT",
