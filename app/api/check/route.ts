@@ -10,8 +10,10 @@ interface CheckRequest {
 interface CheckItSseEvent {
   step?: string;
   result?: string;
+  llm_result?: string;
   z3_result?: string;
   ar_result?: string;
+  ar_detail?: string;
   detail?: string;
   zk_proof_id?: string;
   proof_id?: string;
@@ -30,8 +32,10 @@ interface CheckResponse {
   elapsed_ms: number;
   extracted?: Record<string, unknown>;
   violated_rule?: number;
+  llm_result?: string;
   z3_result?: string;
   ar_result?: string;
+  ar_detail?: string;
   verification_time_ms?: number;
 }
 
@@ -128,8 +132,10 @@ export async function POST(req: NextRequest) {
     elapsed_ms: Date.now() - start,
     extracted: event.extracted,
     violated_rule: event.violated_rule,
+    llm_result: event.llm_result,
     z3_result: event.z3_result,
     ar_result: event.ar_result,
+    ar_detail: event.ar_detail,
     verification_time_ms: event.verification_time_ms,
   };
 

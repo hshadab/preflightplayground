@@ -30,7 +30,10 @@ function normalizeReason(reason: string, _result: "SAT" | "UNSAT"): string {
     return "Action does not satisfy the policy. Z3 found the structural constraints met, but the AR engine identified a semantic violation against the natural-language rules.";
   }
   if (/^Satisfiable$/i.test(reason)) return "Action satisfies every clause of the policy.";
-  if (/^Unsatisfiable.*confirmed by AR/i.test(reason)) return "Action violates the policy. Both Z3 and the AR engine agree.";
+  if (/^Unsatisfiable.*confirmed by AR/i.test(reason)) return "Action violates the policy. The LLM, Z3, and the AR engine all agree.";
+  if (/AR uncertain/i.test(reason)) {
+    return "AR engine returned uncertain. Result determined by the LLM and Z3 verdicts (fail-closed if either disagrees).";
+  }
   return reason;
 }
 
@@ -61,8 +64,10 @@ interface CheckResponse {
   elapsed_ms: number;
   extracted?: Record<string, unknown>;
   violated_rule?: number;
+  llm_result?: string;
   z3_result?: string;
   ar_result?: string;
+  ar_detail?: string;
   verification_time_ms?: number;
 }
 
@@ -139,62 +144,187 @@ function HealthDot({ status, latencyMs }: { status: HealthStatus; latencyMs: num
 }
 
 function ArchitectureDiagram() {
+  const [phase, setPhase] = useState(0);
+  const totalPhases = 6;
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setPhase((p) => (p + 1) % totalPhases);
+    }, 2000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Phase meanings:
+  // 0: All boxes appear
+  // 1: Arrow 1 (Floe → Preflight) + label
+  // 2: Arrow 2 (Preflight → Floe response) + label
+  // 3: Arrow 3 (Anyone → Preflight verify request) + label
+  // 4: Arrow 4 (Preflight → Anyone receipt) + label
+  // 5: Brief pause showing everything, then reset
+
+  const showBox1 = phase >= 0;
+  const showBox2 = phase >= 0;
+  const showBox3 = phase >= 0;
+  const showArrow1 = phase >= 1;
+  const showLabel1 = phase >= 1;
+  const showArrow2 = phase >= 2;
+  const showLabel2 = phase >= 2;
+  const showArrow3 = phase >= 3;
+  const showLabel3 = phase >= 3;
+  const showArrow4 = phase >= 4;
+  const showLabel4 = phase >= 4;
+
   return (
-    <div className="rounded-lg border border-stone-200 bg-white p-3 sm:p-4">
-      <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-700">
-        Trust model — what crosses each line
+    <div className="rounded-lg border border-stone-200 bg-white p-6 lg:p-8">
+      <div className="mb-6 text-center">
+        <div className="text-xs font-semibold uppercase tracking-wider text-stone-700">
+          Trust model — what crosses each line
+        </div>
       </div>
-      <div className="grid gap-3 lg:grid-cols-3">
-        <div className="rounded border border-stone-200 bg-stone-50 p-3">
-          <div className="mb-1 text-[10px] uppercase tracking-wider text-stone-500">Floe stack</div>
-          <div className="text-xs font-semibold text-stone-900">Floe agent</div>
-          <div className="mt-2 text-[11px] text-stone-600">
-            Holds the <code>ICME_API_KEY</code>. Calls <code>checkIt</code> before every{" "}
-            <code>instant_borrow</code>, <code>x402/estimate</code>, or <code>liquidateLoan</code>. Sees
-            the SAT/UNSAT decision and a <code>proof_id</code>.
+
+      {/* Main horizontal flow container */}
+      <div className="relative flex items-center justify-center gap-6 lg:gap-10 py-8">
+
+        {/* Box 1: Floe Agent */}
+        <div
+          className={`relative flex-shrink-0 w-48 lg:w-56 rounded-xl border-2 border-stone-300 bg-stone-50 p-5 lg:p-6 transition-all duration-500 ${
+            showBox1 ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-8"
+          }`}
+        >
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-stone-500">
+            Floe stack
+          </div>
+          <div className="text-sm font-bold text-stone-900 mb-3">Floe Agent</div>
+          <div className="text-xs text-stone-600 leading-relaxed">
+            Holds <code className="bg-stone-200 px-1 rounded text-[10px]">ICME_API_KEY</code>
           </div>
         </div>
-        <div className="rounded border border-[#346DDB] bg-blue-50 p-3">
-          <div className="mb-1 text-[10px] uppercase tracking-wider text-[#346DDB]">Preflight (ICME)</div>
-          <div className="text-xs font-semibold text-stone-900">Decision + SNARK</div>
-          <div className="mt-2 text-[11px] text-stone-700">
-            Evaluates the action against the compiled <code>policy_id</code> using Z3 + AR, then seals
-            the decision into a SNARK.
+
+        {/* Arrow region 1-2 (between Floe and Preflight) */}
+        <div className="relative flex-shrink-0 w-24 lg:w-32 h-32 flex flex-col justify-center">
+          {/* Arrow 1: Floe → Preflight */}
+          <div
+            className={`absolute top-4 left-0 right-0 transition-all duration-500 ${
+              showArrow1 ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            <div className="flex items-center justify-center">
+              <div className="h-0.5 flex-1 bg-emerald-500" />
+              <div className="text-emerald-500 text-lg">→</div>
+            </div>
+            <div
+              className={`mt-1 text-center text-[9px] leading-tight text-emerald-700 transition-all duration-300 ${
+                showLabel1 ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              action + policy_id
+            </div>
+          </div>
+
+          {/* Arrow 2: Preflight → Floe */}
+          <div
+            className={`absolute bottom-4 left-0 right-0 transition-all duration-500 ${
+              showArrow2 ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            <div className="flex items-center justify-center">
+              <div className="text-[#346DDB] text-lg">←</div>
+              <div className="h-0.5 flex-1 bg-[#346DDB]" />
+            </div>
+            <div
+              className={`mt-1 text-center text-[9px] leading-tight text-[#346DDB] transition-all duration-300 ${
+                showLabel2 ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              SAT/UNSAT + proof_id
+            </div>
           </div>
         </div>
-        <div className="rounded border border-stone-200 bg-stone-50 p-3">
-          <div className="mb-1 text-[10px] uppercase tracking-wider text-stone-500">External</div>
-          <div className="text-xs font-semibold text-stone-900">Lender / borrower / regulator</div>
-          <div className="mt-2 text-[11px] text-stone-600">
-            Holds <em>no</em> API key. Calls <code>verifyProof</code> with just the <code>proof_id</code>.
-            Gets <code>valid: true</code> in milliseconds. Cannot reconstruct the loan, the principal&rsquo;s
-            book, or the policy text.
+
+        {/* Box 2: Preflight */}
+        <div
+          className={`relative flex-shrink-0 w-48 lg:w-56 rounded-xl border-2 border-[#346DDB] bg-blue-50 p-5 lg:p-6 transition-all duration-500 ${
+            showBox2 ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-8"
+          }`}
+          style={{ transitionDelay: "100ms" }}
+        >
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#346DDB]">
+            Preflight (ICME)
+          </div>
+          <div className="text-sm font-bold text-stone-900 mb-3">Decision + SNARK</div>
+          <div className="text-xs text-stone-700 leading-relaxed">
+            LLM + Z3 + AR verdicts reconcile, then seals into proof
+          </div>
+        </div>
+
+        {/* Arrow region 2-3 (between Preflight and External) */}
+        <div className="relative flex-shrink-0 w-24 lg:w-32 h-32 flex flex-col justify-center">
+          {/* Arrow 3: Anyone → Preflight */}
+          <div
+            className={`absolute top-4 left-0 right-0 transition-all duration-500 ${
+              showArrow3 ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            <div className="flex items-center justify-center">
+              <div className="text-stone-500 text-lg">←</div>
+              <div className="h-0.5 flex-1 bg-stone-400" />
+            </div>
+            <div
+              className={`mt-1 text-center text-[9px] leading-tight text-stone-600 transition-all duration-300 ${
+                showLabel3 ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              proof_id (no auth)
+            </div>
+          </div>
+
+          {/* Arrow 4: Preflight → Anyone */}
+          <div
+            className={`absolute bottom-4 left-0 right-0 transition-all duration-500 ${
+              showArrow4 ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            <div className="flex items-center justify-center">
+              <div className="h-0.5 flex-1 bg-stone-400" />
+              <div className="text-stone-500 text-lg">→</div>
+            </div>
+            <div
+              className={`mt-1 text-center text-[9px] leading-tight text-stone-600 transition-all duration-300 ${
+                showLabel4 ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              valid: true (receipt)
+            </div>
+          </div>
+        </div>
+
+        {/* Box 3: External */}
+        <div
+          className={`relative flex-shrink-0 w-48 lg:w-56 rounded-xl border-2 border-stone-300 bg-stone-50 p-5 lg:p-6 transition-all duration-500 ${
+            showBox3 ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-8"
+          }`}
+          style={{ transitionDelay: "200ms" }}
+        >
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-stone-500">
+            External
+          </div>
+          <div className="text-sm font-bold text-stone-900 mb-3">Lender / Regulator</div>
+          <div className="text-xs text-stone-600 leading-relaxed">
+            No API key needed to verify
           </div>
         </div>
       </div>
 
-      <div className="mt-4 grid gap-2 text-[11px] text-stone-700 sm:grid-cols-2">
-        <div className="rounded bg-stone-100 p-2">
-          <span className="font-mono text-emerald-700">→</span>{" "}
-          <span className="font-semibold">Floe agent → Preflight:</span> the action description and{" "}
-          <code>policy_id</code>. <span className="text-stone-500">(authenticated, server-side)</span>
-        </div>
-        <div className="rounded bg-stone-100 p-2">
-          <span className="font-mono text-[#346DDB]">←</span>{" "}
-          <span className="font-semibold">Preflight → Floe agent:</span> SAT/UNSAT, reason, and{" "}
-          <code>proof_id</code>. <span className="text-stone-500">(small JSON, no proof body)</span>
-        </div>
-        <div className="rounded bg-stone-100 p-2">
-          <span className="font-mono text-stone-500">→</span>{" "}
-          <span className="font-semibold">Anyone → Preflight:</span> just the <code>proof_id</code>.{" "}
-          <span className="text-stone-500">(no auth)</span>
-        </div>
-        <div className="rounded bg-stone-100 p-2">
-          <span className="font-mono text-stone-500">←</span>{" "}
-          <span className="font-semibold">Preflight → anyone:</span>{" "}
-          <code>{`{ valid, verify_ms, policy_hash, claimed_result }`}</code>.{" "}
-          <span className="text-stone-500">(no loan or principal data, ever)</span>
-        </div>
+      {/* Phase indicator dots */}
+      <div className="flex justify-center gap-2 mt-4">
+        {Array.from({ length: totalPhases }).map((_, i) => (
+          <div
+            key={i}
+            className={`h-2 w-2 rounded-full transition-all duration-300 ${
+              i === phase ? "bg-[#346DDB] scale-125" : "bg-stone-300"
+            }`}
+          />
+        ))}
       </div>
     </div>
   );
@@ -1248,7 +1378,7 @@ export default function Page() {
 // ---------- Decision pipeline (Step 1 visual) ------------------------------
 
 function DecisionPipeline() {
-  const stages = ["extract variables", "Z3 solver", "AR engine", "reconcile"];
+  const stages = ["extract values", "LLM verdict", "Z3 solver", "AR engine", "reconcile"];
   const [active, setActive] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setActive((i) => (i + 1) % stages.length), 700);
@@ -1356,7 +1486,7 @@ function DecisionTabContent({
             <div className="text-[10px] uppercase tracking-wider text-stone-500">
               Step 1 of 2 &middot; Decision {replay && <span className="ml-1 text-amber-700">(replay)</span>}
             </div>
-            <div className="text-[10px] uppercase tracking-wider text-stone-400">extract &rarr; Z3 + AR &rarr; reconcile</div>
+            <div className="text-[10px] uppercase tracking-wider text-stone-400">extract &rarr; LLM + Z3 + AR &rarr; reconcile</div>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -1370,16 +1500,21 @@ function DecisionTabContent({
                 {check.result}
                 {check.blocked ? " (blocked)" : " (allowed)"}
               </div>
-              {/* Show dual-path results if available */}
-              {(check.z3_result || check.ar_result) && (
+              {/* Show per-solver verdicts if available */}
+              {(check.llm_result || check.z3_result || check.ar_result) && (
                 <div className="flex gap-1 text-[10px]">
+                  {check.llm_result && (
+                    <span className={`rounded px-1.5 py-0.5 ${check.llm_result === "SAT" || check.llm_result === "VALID" ? "bg-emerald-50 text-emerald-700" : check.llm_result === "UNSAT" || check.llm_result === "INVALID" ? "bg-rose-50 text-rose-700" : "bg-amber-50 text-amber-700"}`}>
+                      LLM: {check.llm_result}
+                    </span>
+                  )}
                   {check.z3_result && (
                     <span className={`rounded px-1.5 py-0.5 ${check.z3_result === "SAT" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
                       Z3: {check.z3_result}
                     </span>
                   )}
                   {check.ar_result && (
-                    <span className={`rounded px-1.5 py-0.5 ${check.ar_result === "SAT" || check.ar_result === "VALID" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
+                    <span className={`rounded px-1.5 py-0.5 ${check.ar_result === "SAT" || check.ar_result === "VALID" ? "bg-emerald-50 text-emerald-700" : /uncertain/i.test(check.ar_result) ? "bg-amber-50 text-amber-700" : "bg-rose-50 text-rose-700"}`}>
                       AR: {check.ar_result}
                     </span>
                   )}
@@ -1435,27 +1570,32 @@ function DecisionTabContent({
                 summary={
                   <span>
                     <span className="font-semibold text-stone-900">How SAT/UNSAT is computed</span>
-                    <span className="ml-2 text-stone-500">extract &rarr; dual-path verify &rarr; reconcile</span>
+                    <span className="ml-2 text-stone-500">extract &rarr; three independent verdicts &rarr; reconcile</span>
                   </span>
                 }
               >
                 <ol className="list-decimal space-y-2 pl-4 text-stone-600">
                   <li>
-                    <span className="text-stone-900">Variable extraction.</span> An LLM extracts relevant
-                    values from the action text (amounts, recipients, justifications, etc.) into structured form.
+                    <span className="text-stone-900">Variable extraction.</span> The action text is parsed
+                    into a structured set of values (amounts, recipients, justifications, etc.) that the
+                    solvers can reason over.
                   </li>
                   <li>
-                    <span className="text-stone-900">Dual-path verification.</span> Two independent engines
-                    evaluate the action in parallel:
+                    <span className="text-stone-900">Three independent verdicts.</span> Each
+                    <code className="mx-1 rounded bg-stone-100 px-1 py-0.5 font-mono text-[10px]">/v1/checkIt</code>
+                    response returns three results that participate in the decision:
                     <ul className="mt-1 list-disc pl-4 text-[11px]">
-                      <li><span className="font-medium">Z3 SMT solver</span> &mdash; checks extracted values against formal policy constraints</li>
-                      <li><span className="font-medium">Cloud AR engine</span> &mdash; independently evaluates via AWS automated reasoning</li>
+                      <li><span className="font-medium">llm_result</span> &mdash; the LLM&rsquo;s own judgment over the extracted values and policy</li>
+                      <li><span className="font-medium">z3_result</span> &mdash; Z3 SMT solver against the compiled policy constraints</li>
+                      <li><span className="font-medium">ar_result</span> &mdash; ICME&rsquo;s cloud automated-reasoning engine (an implementation of the ARc technique from the AWS research paper, hosted by ICME, not the AWS service)</li>
                     </ul>
                   </li>
                   <li>
-                    <span className="text-stone-900">Reconciliation.</span> Both paths must return SAT for
-                    clearance. If either returns UNSAT, the action is blocked. This redundancy ensures a
-                    single extraction error or reasoning gap cannot produce a false clearance.
+                    <span className="text-stone-900">Reconciliation (fail-closed).</span> The default rule
+                    is unanimous SAT across all three verdicts. If AR returns
+                    <code className="mx-1 rounded bg-stone-100 px-1 py-0.5 font-mono text-[10px]">uncertain</code>
+                    , the result falls back to the LLM and Z3 verdicts &mdash; both must still return SAT to
+                    clear. Any definitive UNSAT from any path blocks the action.
                   </li>
                 </ol>
                 <p className="mt-3 text-[11px] text-stone-500">
