@@ -893,9 +893,10 @@ export default function Page() {
             Cryptographic receipts for AI agent actions.
           </h1>
           <p className="mt-3 max-w-3xl text-sm text-stone-600">
-            Every action runs through a preflight check: SAT clears the agent to execute, UNSAT
-            blocks the action before any side effect fires, and either outcome ships with a SNARK
-            an auditor can verify in milliseconds. <strong>Choose a policy, then click a scenario to start.</strong>
+            Every agent action is checked against your policy before it runs. Allowed actions
+            execute; disallowed ones are blocked before any side effect fires. Each decision comes
+            with a cryptographic proof (SAT or UNSAT) an auditor can verify in milliseconds.{" "}
+            <strong>Choose a policy, then click a scenario to start.</strong>
           </p>
         </div>
         <a href="https://icme.io" target="_blank" rel="noreferrer" className="shrink-0">
