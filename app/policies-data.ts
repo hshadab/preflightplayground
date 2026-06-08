@@ -588,7 +588,7 @@ export const POLICIES: Policy[] = [
     clauses: PRICING_CLAUSES,
     presenterNotes: [
       "An automated pricing agent can commit a competition violation at machine speed and scale. The guardrail checks each pricing or commercial action against the competition rules before it executes — four recognizable violations on one screen: below-cost exclusion, resale price maintenance, information exchange with a competitor, and price discrimination on a prohibited factor. Each is blocked before it executes.",
-      "This tab deliberately leads with the blocked cases — the compliance-relevant ones. Every blocked action still produces a signed receipt proving the check ran and returned a block; the allowed/green path is best shown on the Spending, Refunds, or Procurement tabs.",
+      "This tab leads with an allowed action — a routine price update above the cost floor — so the audience sees legitimate pricing sails through, then four recognizable violations get blocked. Every action, allowed or blocked, produces a signed receipt proving the check ran and what verdict it returned.",
       "The information-exchange scenario is the one for the agentic economy: when pricing agents talk to each other, a concerted practice can form with no human in the loop. The guardrail blocks the disclosure before it is sent.",
       "What the receipt proves: the competition check ran before the action and returned the verdict, verifiable by a competition authority or internal audit without exposing the firm's pricing logic or cost data. In confidential mode the cost floors and pricing model stay private — the proof shows only that the action was checked and what the verdict was.",
       "Scope honestly: this enforces bright-line, per-action constraints the legal team has already set. It does NOT detect tacit collusion or emergent coordination — those are multi-party properties not visible in one action. An antitrust lawyer will distrust any tool that claims to 'prevent collusion,' so say this plainly.",
@@ -597,6 +597,36 @@ export const POLICIES: Policy[] = [
       "For Carolina: this is her ACT practice in one screen — usable as client-facing and teaching material, and it speaks to algorithmic decisioning in digital markets, her stated focus.",
     ],
     presets: [
+      {
+        label: "Routine price update above the cost floor",
+        expected: "SAT",
+        blurb: "A normal list-price update above the documented cost floor, no resale terms, no competitor disclosure, uniform across same-type customers. Allowed.",
+        action:
+          "Set the list price of product SKU-204 to 49.00 EUR for direct end customers. The documented cost floor for SKU-204 is 38.00 EUR, " +
+          "so the 49.00 EUR price is above the cost floor. The action sets no resale price for any independent reseller, discloses no pricing or " +
+          "capacity information to any competitor, and applies the same price to all customers of the same type with no difference based on any prohibited factor. " +
+          "The counterparty type and the documented cost floor are known and verified.",
+        clauses: [
+          { num: 1, status: "pass", note: "49.00 EUR ≥ 38.00 EUR cost floor" },
+          { num: 2, status: "pass", note: "no resale price set" },
+          { num: 3, status: "pass", note: "no competitor disclosure" },
+          { num: 4, status: "pass", note: "uniform price, no prohibited-factor difference" },
+          { num: 5, status: "pass", note: "counterparty type and cost floor are known and verified" },
+        ],
+        replay: {
+          proof_id: REPLAY_UUID(601),
+          reason: "Action satisfies every clause of the policy.",
+          elapsed_ms: 396,
+          proof_gen_seconds: 6,
+          verify: {
+            valid: true,
+            verify_ms: 43,
+            proof_bytes_len: 92160,
+            policy_hash: REPLAY_HASH("algorithmic-pricing"),
+            claimed_result: "SAT",
+          },
+        },
+      },
       {
         label: "Below-cost pricing to exclude a rival",
         expected: "UNSAT",
