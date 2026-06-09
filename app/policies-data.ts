@@ -581,7 +581,7 @@ export const POLICIES: Policy[] = [
   },
   {
     id: "algorithmic-pricing",
-    shortName: "Pricing",
+    shortName: "Pricing & competition",
     longName: "Competition pricing guardrail",
     audience: "Antitrust, competition, digital markets",
     envKey: "NEXT_PUBLIC_POLICY_ID_PRICING",
