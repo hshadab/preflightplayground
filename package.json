@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "policy:compile": "tsx scripts/compile-policy.ts"
+    "policy:compile": "tsx scripts/compile-policy.ts",
+    "time:proof": "tsx scripts/time-proof.ts"
   },
   "dependencies": {
     "next": "^15.5.15",

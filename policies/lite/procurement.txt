@@ -1,0 +1,9 @@
+Procurement and supplier governance policy. The agent is authorized to issue purchase orders within the bounds below. Every PO must satisfy every clause; if any clause fails the action is blocked and routed to a human procurement officer.
+
+1. No single purchase order may exceed a committed value of $250,000, and cumulative quarterly spend with a single supplier may not exceed $1,000,000.
+
+2. The supplier must be present in the supplier master with status equal to "active", must clear OFAC, EU, UK, and UN sanctions screening, and the screening result must be timestamped no more than 24 hours before the PO is committed.
+
+3. For any PO with a committed value of $25,000 or more: an executed master services agreement must be in force, a current certificate of insurance must show cyber liability of at least $5,000,000 and general liability of at least $2,000,000, a data processing addendum must be on file if the supplier will process personal data, and payment terms must be Net-30 or longer.
+
+4. The PO approver must be a distinct identity from the requester, must hold sufficient delegated authority for the PO amount, and the encumbrance plus year-to-date spend must not exceed the cost center's remaining annual budget.

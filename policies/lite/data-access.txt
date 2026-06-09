@@ -1,0 +1,4 @@
+1. The agent may only access customer records belonging to the requesting customer or to a customer who has granted explicit consent, and every access must include a business justification of at least 20 characters.
+2. Sensitive fields ("ssn", "full_dob", "card_number", "bank_account") require purpose equal to "fraud_investigation" or "regulatory_response".
+3. Bulk reads of more than 100 customer records in a single request are not permitted, and cross-region transfers are only permitted between regions on the approved transfer list ("US-EU", "US-CA", "US-UK").
+4. Records flagged "deletion_pending" or "litigation_hold" may not be modified or exported, and access on behalf of a third party requires a documented data processing agreement reference.

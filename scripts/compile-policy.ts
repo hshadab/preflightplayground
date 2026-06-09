@@ -21,6 +21,11 @@
  *   npm run policy:compile                     # interactive, prompts before $3 spend
  *   npm run policy:compile -- --yes            # non-interactive
  *   npm run policy:compile -- --policy other   # compile a different file under policies/
+ *   npm run policy:compile -- --policy spending --lite
+ *                                              # compile policies/lite/<slug>.txt for an
+ *                                              # A/B proof-time test. NEVER writes .env.local,
+ *                                              # so it can't disturb the live wiring. Caches
+ *                                              # by SHA like normal, so re-runs are free.
  */
 
 import { createHash } from "node:crypto";
@@ -212,7 +217,10 @@ async function main() {
   const skipConfirm = args.includes("--yes") || args.includes("-y");
   const policyArgIdx = args.findIndex((a) => a === "--policy");
   const policyName = policyArgIdx !== -1 ? args[policyArgIdx + 1] : "spending";
-  const policyPath = join(ROOT, "policies", `${policyName}.txt`);
+  const lite = args.includes("--lite");
+  const policyPath = lite
+    ? join(ROOT, "policies", "lite", `${policyName}.txt`)
+    : join(ROOT, "policies", `${policyName}.txt`);
 
   if (!existsSync(policyPath)) {
     console.error(`policy file not found: ${policyPath}`);
@@ -238,10 +246,15 @@ async function main() {
     console.log(`  policy_id:      ${cached.policy_id}`);
     console.log(`  compiled_at:    ${cached.compiled_at}`);
     if (cached.scenario_count) console.log(`  scenario_count: ${cached.scenario_count}`);
-    writeEnvLocal(policyName, cached.policy_id);
-    const envKey = SLUG_TO_ENV_KEY[policyName] ?? "NEXT_PUBLIC_POLICY_ID";
-    console.log(`\n${envKey}=${cached.policy_id}`);
-    if (policyName === "spending") console.log(`NEXT_PUBLIC_POLICY_ID=${cached.policy_id}  # legacy alias`);
+    if (lite) {
+      console.log(`\n[LITE] .env.local NOT modified. Use this id only for the A/B test:`);
+      console.log(`  policy_id: ${cached.policy_id}`);
+    } else {
+      writeEnvLocal(policyName, cached.policy_id);
+      const envKey = SLUG_TO_ENV_KEY[policyName] ?? "NEXT_PUBLIC_POLICY_ID";
+      console.log(`\n${envKey}=${cached.policy_id}`);
+      if (policyName === "spending") console.log(`NEXT_PUBLIC_POLICY_ID=${cached.policy_id}  # legacy alias`);
+    }
     return;
   }
 
@@ -267,16 +280,21 @@ async function main() {
     scenario_count: result.scenarioCount,
   };
   writeCache(entry);
-  writeEnvLocal(policyName, result.policyId);
+  if (!lite) writeEnvLocal(policyName, result.policyId);
 
   console.log(`\n[OK] policy compiled.`);
   console.log(`  policy_id:        ${result.policyId}`);
   if (result.scenarioCount) console.log(`  scenario_count:   ${result.scenarioCount}`);
   console.log(`  cache file:       ${cachePathFor(hash)}`);
   console.log(`  raw SSE log:      ${result.rawSseLogPath}`);
-  const envKey = SLUG_TO_ENV_KEY[policyName] ?? "NEXT_PUBLIC_POLICY_ID";
-  console.log(`\n${envKey}=${result.policyId}`);
-  if (policyName === "spending") console.log(`NEXT_PUBLIC_POLICY_ID=${result.policyId}  # legacy alias`);
+  if (lite) {
+    console.log(`\n[LITE] .env.local NOT modified. Use this id only for the A/B test:`);
+    console.log(`  policy_id: ${result.policyId}`);
+  } else {
+    const envKey = SLUG_TO_ENV_KEY[policyName] ?? "NEXT_PUBLIC_POLICY_ID";
+    console.log(`\n${envKey}=${result.policyId}`);
+    if (policyName === "spending") console.log(`NEXT_PUBLIC_POLICY_ID=${result.policyId}  # legacy alias`);
+  }
 }
 
 main().catch((err) => {
