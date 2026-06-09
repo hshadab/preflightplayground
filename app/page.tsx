@@ -1782,17 +1782,19 @@ function DecisionTabContent({
                   }
                 >
                   <p className="mb-2">
-                    Generating a proof requires evaluating the entire policy circuit and producing a
-                    ~90 KB proof &mdash; that is the seconds-long step.
+                    Making the proof is the slow part. Preflight walks through every rule in your policy
+                    against this specific action &mdash; the budget caps, the allow-lists, every condition
+                    &mdash; and records the math of each check. It then compresses all of that work into one
+                    small (~90 KB) file, the proof. The file is built so that it&rsquo;s impossible to fake:
+                    it only adds up if the policy really was followed. Doing all of this takes a few seconds.
                   </p>
                   <p className="mb-2">
-                    Verifying a proof only requires checking a small number of elliptic-curve pairings
-                    against the proof &mdash; that is the sub-second step, and it does not depend on the
-                    size of the original policy.
+                    Checking the proof is the fast part. A verifier just runs a quick math check on that
+                    file &mdash; under a second, no matter how big or complex your policy is.
                   </p>
                   <p>
-                    That asymmetry is the whole point: anyone can verify cheaply and independently,
-                    without re-running your policy or seeing your inputs.
+                    That gap is the whole point: anyone can check the proof cheaply, on their own, without
+                    re-running your policy or ever seeing your data.
                   </p>
                 </Disclosure>
               </div>
