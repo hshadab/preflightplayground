@@ -3,7 +3,7 @@
 A one-page B2B sales demo that runs the full Preflight flow end to end:
 
 1. **Step 1 — Decision.** Pick a policy, pick a proposed agent action. Preflight evaluates it against the compiled policy and returns SAT (allowed) or UNSAT (blocked), with a per-clause breakdown.
-2. **Step 2 — Cryptographic receipt.** The decision is sealed into a SNARK on the backend. The browser then calls the public `/v1/verifyProof` endpoint **directly** (no proxy, no API key) so a viewer can confirm in DevTools that the verification is genuinely independent of this site's backend.
+2. **Step 2 — Cryptographic receipt.** The decision is sealed into a proof on the backend. The browser then calls the public `/v1/verifyProof` endpoint **directly** (no proxy, no API key) so a viewer can confirm in DevTools that the verification is genuinely independent of this site's backend.
 3. **Step 3 — Integrate.** A copy-pasteable `curl` / TypeScript / Python snippet shows the buyer's engineer exactly the request that produced the receipt they just watched.
 
 The page is meant to be paste-able into a VC chat or a prospect's email and have them watch a real proof generate and verify in their browser in well under a minute. It is **not** a self-serve product — it is a tool for live sales calls with technical buyers.
@@ -21,7 +21,7 @@ The page is meant to be paste-able into a VC chat or a prospect's email and have
   Each policy ships with three presets (one SAT, two UNSAT) chosen to provoke "huh, I have that exact rule" reactions from the corresponding buyer persona.
 - **Left column (sticky)** — collapsible Active Policy with all clauses, three preset action buttons with expected SAT/UNSAT badges, "Talk to the founders" Calendly card, and a "Going deeper" stack of further disclosures (what's in the receipt vs. what isn't, run on your own policy, what changes for a confidential policy, audit trail downstream).
 - **Right column (tabbed)** — four tabs:
-  - **Decision** — SAT/UNSAT badge, per-clause evaluation, "How SAT/UNSAT is computed" explainer (parse → Z3 → AR), then a clearly separated "Step 2 of 2 · Cryptographic receipt" block with `proof_id`, SNARK generation status, the verify-independently button, inline verify badges, and "How the receipt is sealed" + SNARK asymmetry disclosures.
+  - **Decision** — SAT/UNSAT badge, per-clause evaluation, "How SAT/UNSAT is computed" explainer (parse → Z3 → AR), then a clearly separated "Step 2 of 2 · Cryptographic receipt" block with `proof_id`, proof generation status, the verify-independently button, inline verify badges, and "How the receipt is sealed" + proof asymmetry disclosures.
   - **API call** — collapsible request/response payloads for both `POST /v1/checkIt` (via this site's proxy) and `POST /v1/verifyProof` (browser → ICME directly).
   - **Receipt** — full signed JSON receipt and a field-by-field annotation, plus a one-click "Share this receipt" button (URL-hash, never hits a server).
   - **Integrate** — `curl` / TypeScript / Python snippets pre-populated with the *current scenario's* `policy_id`, `action`, and (when available) `proof_id`, plus an architecture diagram of the three boxes (Your stack / Preflight / External).
@@ -50,11 +50,11 @@ When the env var **is** set, replay mode defaults to off and you get real proofs
 
 ## Shareable receipts
 
-The Receipt tab has a "Share this receipt" button that captures the full verified receipt into a `#share=<base64url(JSON)>` URL fragment. Hash fragments are never sent to servers, so this is safe to paste into Slack/email — the recipient sees exactly the captured `verify` response (`policy_hash`, `claimed_result`, `verify_ms`, etc.) without re-spending a SNARK verification or hitting the single-use 409. There's a "Re-verify on chain" button, but in replay mode and on already-consumed proofs it explains the 409 instead of failing silently.
+The Receipt tab has a "Share this receipt" button that captures the full verified receipt into a `#share=<base64url(JSON)>` URL fragment. Hash fragments are never sent to servers, so this is safe to paste into Slack/email — the recipient sees exactly the captured `verify` response (`policy_hash`, `claimed_result`, `verify_ms`, etc.) without re-spending a proof verification or hitting the single-use 409. There's a "Re-verify on chain" button, but in replay mode and on already-consumed proofs it explains the 409 instead of failing silently.
 
 ## Architecture
 
-- `app/page.tsx` — the entire UI. Two-column responsive layout, tabbed right column, reusable `Disclosure` component, polling hook for SNARK readiness, share-link encoder/decoder, presenter drawer, replay-mode controller.
+- `app/page.tsx` — the entire UI. Two-column responsive layout, tabbed right column, reusable `Disclosure` component, polling hook for proof readiness, share-link encoder/decoder, presenter drawer, replay-mode controller.
 - `app/policies-data.ts` — single source of truth for all four policies, their clauses, presets, per-clause evaluations, replay payloads, and presenter notes.
 - `app/snippets.ts` — `curl` / TS / Python snippet generators for the Integrate tab. Library-free, properly escaped per-language.
 - `app/api/check/route.ts` — Edge route proxying `POST /v1/checkIt`. Holds `ICME_API_KEY` server-side. Handles both JSON and SSE upstream responses, fail-closes to UNSAT, normalizes `zk_proof_id` → `proof_id`.
@@ -159,7 +159,7 @@ These behaviors are baked into this codebase; flagging them so future maintainer
 - `/v1/checkIt` returns `text/event-stream`, not JSON. The proxy handles both content types.
 - `/v1/checkIt` may return `result: "AR uncertain"`. The proxy falls back to `z3_result`, then fail-closes to UNSAT.
 - The proof field is named `zk_proof_id` in `checkIt` responses but `proof_id` everywhere else. The proxy normalizes to `proof_id`.
-- `/v1/checkIt` returns the `proof_id` quickly but the SNARK itself is generated asynchronously on the backend. The UI polls `/api/proof-status` (which proxies `GET /v1/proof/:id`) and only enables the verify button once the proof is ready. The poll has a 45-second timeout and a Retry button.
+- `/v1/checkIt` returns the `proof_id` quickly but the proof itself is generated asynchronously on the backend. The UI polls `/api/proof-status` (which proxies `GET /v1/proof/:id`) and only enables the verify button once the proof is ready. The poll has a 45-second timeout and a Retry button.
 - `/v1/verifyProof` is single-use. Calling it twice on the same proof returns HTTP 409. The UI surfaces this as a clear message rather than a generic error, and the share-link receiver shows the captured receipt instead of trying a redundant verify.
 - `/v1/makeRules` has no idempotency key and no `GET /v1/policies` endpoint. The compile script's SHA-256 cache is the only thing standing between you and another $3 charge.
 - The status-dot health probe deliberately calls `/v1/verifyProof` with a bogus UUID rather than `/v1/checkIt`, because we don't want to spend a real check just to render a dot.

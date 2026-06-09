@@ -58,7 +58,7 @@ export default async function OpenGraphImage() {
               maxWidth: 980,
             }}
           >
-            Run a real check, then verify the SNARK in your browser. No API key, no trust required.
+            Run a real check, then verify the proof in your browser. No API key, no trust required.
           </div>
         </div>
 

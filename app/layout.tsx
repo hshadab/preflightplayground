@@ -3,7 +3,7 @@ import "./globals.css";
 
 const SITE_TITLE = "Preflight — cryptographic receipts for AI agent actions";
 const SITE_DESCRIPTION =
-  "Run a real Preflight check against an AI agent action and verify the resulting SNARK in your browser. No API key, no trust required.";
+  "Run a real Preflight check against an AI agent action and verify the resulting proof in your browser. No API key, no trust required.";
 
 // Used to resolve relative OG / Twitter image URLs to absolute ones.
 // Override per environment via NEXT_PUBLIC_SITE_URL when the canonical

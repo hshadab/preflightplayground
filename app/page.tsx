@@ -252,7 +252,7 @@ function ArchitectureDiagram() {
           <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#346DDB]">
             Preflight (ICME)
           </div>
-          <div className="text-sm font-bold text-stone-900 mb-3">Decision + SNARK</div>
+          <div className="text-sm font-bold text-stone-900 mb-3">Decision + Proof</div>
           <div className="text-xs text-stone-700 leading-relaxed">
             LLM + Z3 + AR verdicts reconcile, then seals into proof
           </div>
@@ -368,7 +368,7 @@ function PresenterNotesContent({ policy }: { policy: Policy }) {
           </li>
           <li className="list-disc">
             <span className="font-medium text-stone-900">&ldquo;Latency?&rdquo;</span> Sub-second
-            decision; SNARK seal happens in the background; verify is single-digit milliseconds.
+            decision; proof seal happens in the background; verify is single-digit milliseconds.
           </li>
         </ul>
       </div>
@@ -668,7 +668,7 @@ export default function Page() {
   useEffect(() => {
     if (!check?.proof_id) return;
     if (effectiveReplay) {
-      // Replay mode: fake the SNARK ready state immediately based on the
+      // Replay mode: fake the proof ready state immediately based on the
       // preset's recorded data so the UI flow looks identical.
       const seconds = activePreset?.replay?.proof_gen_seconds ?? 5;
       setProofReady(false);
@@ -1000,7 +1000,7 @@ export default function Page() {
                             : "bg-rose-100 text-rose-800"
                         }`}
                       >
-                        {preset.expected}
+                        {preset.expected === "SAT" ? "Allowed" : "Blocked"}
                       </div>
                     </div>
                     <div className="mt-1 text-[11px] text-stone-600">{preset.blurb}</div>
@@ -1037,7 +1037,7 @@ export default function Page() {
                     <li>&middot; <code>claimed_result</code> &mdash; SAT or UNSAT</li>
                     <li>&middot; <code>proof_id</code> &mdash; reference for verifyProof</li>
                     <li>&middot; <code>verify_ms</code>, <code>proof_bytes_len</code></li>
-                    <li>&middot; cryptographic SNARK that binds them together</li>
+                    <li>&middot; cryptographic proof that binds them together</li>
                   </ul>
                 </div>
                 <div>
@@ -1119,6 +1119,20 @@ export default function Page() {
 
         {/* RIGHT COLUMN: tabbed (Decision / Wire / Receipt / Integrate) */}
         <div className="rounded-lg border border-stone-200 bg-white">
+          {/* Companion line: one sentence that tracks where the user is in the flow */}
+          <div className="border-b border-stone-100 px-4 py-2.5 text-xs text-stone-600">
+            {verify
+              ? "Verified independently in your browser — anyone can re-check this receipt in milliseconds, without seeing your data."
+              : check && check.proof_id && !proofReady && !effectiveReplay
+              ? "Decision made. The proof is being sealed on the backend — then you can verify it."
+              : check
+              ? check.blocked
+                ? "Blocked before any action could run. Verify the receipt to prove the check happened \u2192"
+                : "Allowed. The signed receipt proves the policy was checked before the action ran \u2192"
+              : checkLoading
+              ? `Evaluating the action against all ${policy.clauses.length} clauses\u2026`
+              : "Pick an action on the left. Preflight checks it against the policy before it could run."}
+          </div>
           {/* Tab bar */}
           <div className="flex flex-wrap items-center gap-1 overflow-x-auto border-b border-stone-200 px-2 pt-2">
             {([
@@ -1328,7 +1342,7 @@ export default function Page() {
                           Independent of policy size.
                         </li>
                         <li>
-                          <code className="text-stone-900">proof_bytes_len</code> &mdash; size of the SNARK proof.
+                          <code className="text-stone-900">proof_bytes_len</code> &mdash; size of the proof.
                           Constant-ish regardless of how complex the policy is.
                         </li>
                         <li>
@@ -1618,7 +1632,7 @@ function DecisionTabContent({
                   </li>
                 </ol>
                 <p className="mt-3 text-[11px] text-stone-500">
-                  The decision is final at this point. Sealing it into a SNARK happens next, in step 2.
+                  The decision is final at this point. Sealing it into a proof happens next, in step 2.
                 </p>
               </Disclosure>
             </div>
@@ -1628,7 +1642,7 @@ function DecisionTabContent({
             <div className="mt-6 border-t border-stone-200 pt-4">
               <div className="mb-3 flex items-baseline justify-between">
                 <div className="text-[10px] uppercase tracking-wider text-stone-500">Step 2 of 2 &middot; Cryptographic receipt</div>
-                <div className="text-[10px] uppercase tracking-wider text-stone-400">SNARK &rarr; verify</div>
+                <div className="text-[10px] uppercase tracking-wider text-stone-400">proof &rarr; verify</div>
               </div>
               <p className="mb-3 text-xs text-stone-600">
                 The SAT/UNSAT decision above is final. Now Preflight seals it into a zero-knowledge proof
@@ -1666,7 +1680,7 @@ function DecisionTabContent({
                   <div className="flex items-center gap-2">
                     <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
                     <span className="text-emerald-700">
-                      SNARK ready ({proofGenSeconds}s to generate). Verification is sub-second.
+                      Proof ready ({proofGenSeconds}s to generate). Verification is sub-second.
                     </span>
                   </div>
                 ) : (
@@ -1675,7 +1689,7 @@ function DecisionTabContent({
                       <div className="font-mono text-3xl font-semibold tabular-nums text-amber-600">
                         {proofGenSeconds}s
                       </div>
-                      <div className="text-amber-800">SNARK sealing on the backend&hellip;</div>
+                      <div className="text-amber-800">Proof sealing on the backend&hellip;</div>
                     </div>
                     <div className="mt-2 h-1 w-full overflow-hidden rounded bg-stone-200">
                       <div className="animate-preflight-slide h-full w-1/3 rounded bg-amber-500" />
@@ -1696,7 +1710,7 @@ function DecisionTabContent({
                     ? "Verify this proof independently"
                     : proofTimedOut
                     ? "Try verify now"
-                    : "Waiting for SNARK to finalize..."}
+                    : "Waiting for proof to finalize..."}
                 </button>
 
                 {verify && (
@@ -1763,16 +1777,16 @@ function DecisionTabContent({
                   summary={
                     <span>
                       <span className="font-semibold text-stone-900">Why proof verification is faster than generation</span>
-                      <span className="ml-2 text-stone-500">the SNARK asymmetry</span>
+                      <span className="ml-2 text-stone-500">the proof asymmetry</span>
                     </span>
                   }
                 >
                   <p className="mb-2">
-                    Generating a SNARK requires evaluating the entire policy circuit and producing a
+                    Generating a proof requires evaluating the entire policy circuit and producing a
                     ~90 KB proof &mdash; that is the seconds-long step.
                   </p>
                   <p className="mb-2">
-                    Verifying a SNARK only requires checking a small number of elliptic-curve pairings
+                    Verifying a proof only requires checking a small number of elliptic-curve pairings
                     against the proof &mdash; that is the sub-second step, and it does not depend on the
                     size of the original policy.
                   </p>
@@ -1855,7 +1869,7 @@ function IntegrateTabContent({
         </div>
         <div className="rounded border border-stone-200 bg-stone-50 p-3 text-[11px] text-stone-700">
           <div className="mb-1 text-[10px] uppercase tracking-wider text-stone-500">Step 2: poll</div>
-          The SNARK is sealed asynchronously (a few seconds). Poll <code>/v1/proof/&lt;id&gt;</code> until
+          The proof is sealed asynchronously (a few seconds). Poll <code>/v1/proof/&lt;id&gt;</code> until
           you get a 200, then move on. The example uses a 45-second timeout.
         </div>
         <div className="rounded border border-stone-200 bg-stone-50 p-3 text-[11px] text-stone-700">

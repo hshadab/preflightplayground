@@ -23,7 +23,7 @@ export function curlSnippet(policyId: string, action: string, proofId?: string):
     `  -d '{"policy_id":"${p}","action":"${a}"}'`,
     ``,
     `# Response includes "result" (SAT|UNSAT) and "zk_proof_id" (UUID).`,
-    `# Wait a few seconds while the SNARK is sealed on the backend, then:`,
+    `# Wait a few seconds while the proof is sealed on the backend, then:`,
     ``,
     `# 2) Verify the receipt INDEPENDENTLY. No API key, anyone can run this.`,
     `curl -sX POST https://api.icme.io/v1/verifyProof \\`,
@@ -67,7 +67,7 @@ async function waitUntilReady(proofId: string, timeoutMs = 45_000) {
     if (r.ok) return;
     await new Promise((res) => setTimeout(res, 2000));
   }
-  throw new Error("SNARK generation timed out");
+  throw new Error("Proof generation timed out");
 }
 
 async function verifyProof(proofId: string) {
@@ -123,7 +123,7 @@ def wait_until_ready(proof_id: str, timeout_s: int = 45):
         if r.status_code == 200:
             return
         time.sleep(2)
-    raise TimeoutError("SNARK generation timed out")
+    raise TimeoutError("Proof generation timed out")
 
 def verify_proof(proof_id: str):
     # No API key. Public endpoint.

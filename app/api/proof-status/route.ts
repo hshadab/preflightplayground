@@ -6,7 +6,7 @@ const BASE_URL = process.env.ICME_BASE_URL ?? "https://api.icme.io/v1";
 
 /**
  * Proxies GET /v1/proof/:id so the browser can poll readiness without holding
- * the API key. Returns 404 while the SNARK is still generating, 200 when ready.
+ * the API key. Returns 404 while the proof is still generating, 200 when ready.
  *
  * We don't return the proof body itself -- only a {ready: boolean} so the UI
  * can decide when to enable the (independent, no-auth) verifyProof button.
