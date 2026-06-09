@@ -237,7 +237,7 @@ function ArchitectureDiagram() {
                 showLabel2 ? "opacity-100" : "opacity-0"
               }`}
             >
-              SAT/UNSAT + proof_id
+              Allowed/Blocked + proof_id
             </div>
           </div>
         </div>
@@ -896,7 +896,7 @@ export default function Page() {
           <p className="mt-3 max-w-3xl text-sm text-stone-600">
             Every agent action is checked against your policy before it runs. Allowed actions
             execute; disallowed ones are blocked before any side effect fires. Each decision comes
-            with a cryptographic proof (SAT or UNSAT) an auditor can verify in milliseconds.{" "}
+            with a cryptographic proof an auditor can verify in milliseconds.{" "}
             <strong>Choose a policy, then click a scenario to start.</strong>
           </p>
         </div>
@@ -1202,7 +1202,7 @@ export default function Page() {
                   <div className="space-y-3">
                     <p className="text-xs text-stone-500">
                       Your agent makes one outbound call to Preflight before each action. Preflight returns
-                      a small signed receipt: the SAT/UNSAT decision, a policy version hash, and a proof_id pointing to a
+                      a small signed receipt: the allowed/blocked decision, a policy version hash, and a proof_id pointing to a
                       ZK proof. None of your underlying business data crosses the wire &mdash; only the action description
                       and the outcome.
                     </p>
@@ -1502,7 +1502,7 @@ function DecisionTabContent({
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#346DDB] opacity-75" />
               <span className="relative inline-flex h-3 w-3 rounded-full bg-[#346DDB]" />
             </span>
-            <span>Computing SAT/UNSAT&hellip;</span>
+            <span>Computing decision&hellip;</span>
           </div>
           <DecisionPipeline />
         </div>
@@ -1602,7 +1602,7 @@ function DecisionTabContent({
               <Disclosure
                 summary={
                   <span>
-                    <span className="font-semibold text-stone-900">How SAT/UNSAT is computed</span>
+                    <span className="font-semibold text-stone-900">How the decision is computed</span>
                     <span className="ml-2 text-stone-500">extract &rarr; three independent verdicts &rarr; reconcile</span>
                   </span>
                 }
@@ -1645,7 +1645,7 @@ function DecisionTabContent({
                 <div className="text-[10px] uppercase tracking-wider text-stone-400">proof &rarr; verify</div>
               </div>
               <p className="mb-3 text-xs text-stone-600">
-                The SAT/UNSAT decision above is final. Now Preflight seals it into a zero-knowledge proof
+                The decision above is final. Now Preflight seals it into a zero-knowledge proof
                 that anyone can verify independently &mdash; no API key, no access to your policy or inputs.
               </p>
 
@@ -1799,7 +1799,7 @@ function DecisionTabContent({
             </div>
           ) : (
             <div className="mt-4 text-xs text-stone-500">
-              No proof_id returned (UNSAT checks may not produce a ZK proof on every deployment).
+              No proof_id returned (blocked checks may not produce a ZK proof on every deployment).
             </div>
           )}
         </div>
@@ -1864,7 +1864,7 @@ function IntegrateTabContent({
       <div className="mt-4 grid gap-3 lg:grid-cols-3">
         <div className="rounded border border-stone-200 bg-stone-50 p-3 text-[11px] text-stone-700">
           <div className="mb-1 text-[10px] uppercase tracking-wider text-stone-500">Step 1: check</div>
-          The first call needs your API key &mdash; keep it server-side. The response carries the SAT/UNSAT
+          The first call needs your API key &mdash; keep it server-side. The response carries the allowed/blocked
           decision and a <code>zk_proof_id</code> you can hand to anyone.
         </div>
         <div className="rounded border border-stone-200 bg-stone-50 p-3 text-[11px] text-stone-700">
