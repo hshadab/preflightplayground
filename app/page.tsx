@@ -144,6 +144,109 @@ function HealthDot({ status, latencyMs }: { status: HealthStatus; latencyMs: num
   );
 }
 
+// A single directional arrow used in the trust-model diagram. Renders
+// horizontally on desktop (md+) and vertically when the boxes stack on mobile.
+function FlowArrow({
+  orientation,
+  hDir,
+  vDir,
+  lineColor,
+  glyphColor,
+  labelColor,
+  label,
+  show,
+  showLabel,
+  className = "",
+}: {
+  orientation: "h" | "v";
+  hDir: "right" | "left";
+  vDir: "down" | "up";
+  lineColor: string;
+  glyphColor: string;
+  labelColor: string;
+  label: string;
+  show: boolean;
+  showLabel: boolean;
+  className?: string;
+}) {
+  if (orientation === "h") {
+    return (
+      <div className={`${className} transition-all duration-500 ${show ? "opacity-100" : "opacity-0"}`}>
+        <div className="flex items-center justify-center">
+          {hDir === "right" ? (
+            <>
+              <div className={`h-0.5 flex-1 ${lineColor}`} />
+              <div className={`${glyphColor} text-lg`}>→</div>
+            </>
+          ) : (
+            <>
+              <div className={`${glyphColor} text-lg`}>←</div>
+              <div className={`h-0.5 flex-1 ${lineColor}`} />
+            </>
+          )}
+        </div>
+        <div
+          className={`mt-1 text-center text-[9px] leading-tight ${labelColor} transition-all duration-300 ${
+            showLabel ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          {label}
+        </div>
+      </div>
+    );
+  }
+  // vertical (mobile)
+  return (
+    <div className={`flex flex-col items-center transition-all duration-500 ${show ? "opacity-100" : "opacity-0"}`}>
+      <div className="flex flex-col items-center">
+        {vDir === "down" ? (
+          <>
+            <div className={`h-5 w-0.5 ${lineColor}`} />
+            <div className={`${glyphColor} text-lg leading-none`}>↓</div>
+          </>
+        ) : (
+          <>
+            <div className={`${glyphColor} text-lg leading-none`}>↑</div>
+            <div className={`h-5 w-0.5 ${lineColor}`} />
+          </>
+        )}
+      </div>
+      <div
+        className={`mt-1 max-w-[7rem] text-center text-[9px] leading-tight ${labelColor} transition-all duration-300 ${
+          showLabel ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+// The connector between two boxes: a forward arrow and a return arrow.
+// Horizontal stacked pair on desktop, side-by-side vertical pair on mobile.
+function FlowConnector({
+  forward,
+  back,
+}: {
+  forward: Omit<React.ComponentProps<typeof FlowArrow>, "orientation" | "className">;
+  back: Omit<React.ComponentProps<typeof FlowArrow>, "orientation" | "className">;
+}) {
+  return (
+    <>
+      {/* Desktop: horizontal, forward on top / return on bottom */}
+      <div className="relative hidden h-32 w-24 flex-shrink-0 flex-col justify-center md:flex lg:w-32">
+        <FlowArrow orientation="h" className="absolute left-0 right-0 top-4" {...forward} />
+        <FlowArrow orientation="h" className="absolute bottom-4 left-0 right-0" {...back} />
+      </div>
+      {/* Mobile: vertical, forward + return side by side */}
+      <div className="flex w-full justify-center gap-10 py-1 md:hidden">
+        <FlowArrow orientation="v" {...forward} />
+        <FlowArrow orientation="v" {...back} />
+      </div>
+    </>
+  );
+}
+
 function ArchitectureDiagram() {
   const [phase, setPhase] = useState(0);
   const totalPhases = 6;
@@ -163,33 +266,27 @@ function ArchitectureDiagram() {
   // 4: Arrow 4 (Preflight → Anyone receipt) + label
   // 5: Brief pause showing everything, then reset
 
-  const showBox1 = phase >= 0;
-  const showBox2 = phase >= 0;
-  const showBox3 = phase >= 0;
+  const showBox = phase >= 0;
   const showArrow1 = phase >= 1;
-  const showLabel1 = phase >= 1;
   const showArrow2 = phase >= 2;
-  const showLabel2 = phase >= 2;
   const showArrow3 = phase >= 3;
-  const showLabel3 = phase >= 3;
   const showArrow4 = phase >= 4;
-  const showLabel4 = phase >= 4;
 
   return (
-    <div className="rounded-lg border border-stone-200 bg-white p-6 lg:p-8">
+    <div className="rounded-lg border border-stone-200 bg-white p-4 sm:p-6 lg:p-8">
       <div className="mb-6 text-center">
         <div className="text-xs font-semibold uppercase tracking-wider text-stone-700">
           Trust model — what crosses each line
         </div>
       </div>
 
-      {/* Main horizontal flow container */}
-      <div className="relative flex items-center justify-center gap-6 lg:gap-10 py-8">
+      {/* Flow container: vertical stack on mobile, horizontal row on md+ */}
+      <div className="relative flex flex-col items-center justify-center gap-2 py-4 md:flex-row md:gap-6 md:py-8 lg:gap-10">
 
         {/* Box 1: Your Agent */}
         <div
-          className={`relative flex-shrink-0 w-48 lg:w-56 rounded-xl border-2 border-stone-300 bg-stone-50 p-5 lg:p-6 transition-all duration-500 ${
-            showBox1 ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-8"
+          className={`relative w-full max-w-xs flex-shrink-0 rounded-xl border-2 border-stone-300 bg-stone-50 p-5 transition-all duration-500 md:w-48 lg:w-56 lg:p-6 ${
+            showBox ? "translate-x-0 opacity-100" : "-translate-x-8 opacity-0"
           }`}
         >
           <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-stone-500">
@@ -201,51 +298,34 @@ function ArchitectureDiagram() {
           </div>
         </div>
 
-        {/* Arrow region 1-2 (between Agent and Preflight) */}
-        <div className="relative flex-shrink-0 w-24 lg:w-32 h-32 flex flex-col justify-center">
-          {/* Arrow 1: Agent → Preflight */}
-          <div
-            className={`absolute top-4 left-0 right-0 transition-all duration-500 ${
-              showArrow1 ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            <div className="flex items-center justify-center">
-              <div className="h-0.5 flex-1 bg-emerald-500" />
-              <div className="text-emerald-500 text-lg">→</div>
-            </div>
-            <div
-              className={`mt-1 text-center text-[9px] leading-tight text-emerald-700 transition-all duration-300 ${
-                showLabel1 ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              action + policy_id
-            </div>
-          </div>
-
-          {/* Arrow 2: Preflight → Agent */}
-          <div
-            className={`absolute bottom-4 left-0 right-0 transition-all duration-500 ${
-              showArrow2 ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            <div className="flex items-center justify-center">
-              <div className="text-[#346DDB] text-lg">←</div>
-              <div className="h-0.5 flex-1 bg-[#346DDB]" />
-            </div>
-            <div
-              className={`mt-1 text-center text-[9px] leading-tight text-[#346DDB] transition-all duration-300 ${
-                showLabel2 ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              Allowed/Blocked + proof_id
-            </div>
-          </div>
-        </div>
+        {/* Connector: Agent ↔ Preflight */}
+        <FlowConnector
+          forward={{
+            hDir: "right",
+            vDir: "down",
+            lineColor: "bg-emerald-500",
+            glyphColor: "text-emerald-500",
+            labelColor: "text-emerald-700",
+            label: "action + policy_id",
+            show: showArrow1,
+            showLabel: showArrow1,
+          }}
+          back={{
+            hDir: "left",
+            vDir: "up",
+            lineColor: "bg-[#346DDB]",
+            glyphColor: "text-[#346DDB]",
+            labelColor: "text-[#346DDB]",
+            label: "Allowed/Blocked + proof_id",
+            show: showArrow2,
+            showLabel: showArrow2,
+          }}
+        />
 
         {/* Box 2: Preflight */}
         <div
-          className={`relative flex-shrink-0 w-48 lg:w-56 rounded-xl border-2 border-[#346DDB] bg-blue-50 p-5 lg:p-6 transition-all duration-500 ${
-            showBox2 ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-8"
+          className={`relative w-full max-w-xs flex-shrink-0 rounded-xl border-2 border-[#346DDB] bg-blue-50 p-5 transition-all duration-500 md:w-48 lg:w-56 lg:p-6 ${
+            showBox ? "translate-x-0 opacity-100" : "-translate-x-8 opacity-0"
           }`}
           style={{ transitionDelay: "100ms" }}
         >
@@ -258,51 +338,34 @@ function ArchitectureDiagram() {
           </div>
         </div>
 
-        {/* Arrow region 2-3 (between Preflight and External) */}
-        <div className="relative flex-shrink-0 w-24 lg:w-32 h-32 flex flex-col justify-center">
-          {/* Arrow 3: Anyone → Preflight */}
-          <div
-            className={`absolute top-4 left-0 right-0 transition-all duration-500 ${
-              showArrow3 ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            <div className="flex items-center justify-center">
-              <div className="text-stone-500 text-lg">←</div>
-              <div className="h-0.5 flex-1 bg-stone-400" />
-            </div>
-            <div
-              className={`mt-1 text-center text-[9px] leading-tight text-stone-600 transition-all duration-300 ${
-                showLabel3 ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              proof_id (no auth)
-            </div>
-          </div>
-
-          {/* Arrow 4: Preflight → Anyone */}
-          <div
-            className={`absolute bottom-4 left-0 right-0 transition-all duration-500 ${
-              showArrow4 ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            <div className="flex items-center justify-center">
-              <div className="h-0.5 flex-1 bg-stone-400" />
-              <div className="text-stone-500 text-lg">→</div>
-            </div>
-            <div
-              className={`mt-1 text-center text-[9px] leading-tight text-stone-600 transition-all duration-300 ${
-                showLabel4 ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              valid: true (receipt)
-            </div>
-          </div>
-        </div>
+        {/* Connector: Preflight ↔ External */}
+        <FlowConnector
+          forward={{
+            hDir: "left",
+            vDir: "up",
+            lineColor: "bg-stone-400",
+            glyphColor: "text-stone-500",
+            labelColor: "text-stone-600",
+            label: "proof_id (no auth)",
+            show: showArrow3,
+            showLabel: showArrow3,
+          }}
+          back={{
+            hDir: "right",
+            vDir: "down",
+            lineColor: "bg-stone-400",
+            glyphColor: "text-stone-500",
+            labelColor: "text-stone-600",
+            label: "valid: true (receipt)",
+            show: showArrow4,
+            showLabel: showArrow4,
+          }}
+        />
 
         {/* Box 3: External */}
         <div
-          className={`relative flex-shrink-0 w-48 lg:w-56 rounded-xl border-2 border-stone-300 bg-stone-50 p-5 lg:p-6 transition-all duration-500 ${
-            showBox3 ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-8"
+          className={`relative w-full max-w-xs flex-shrink-0 rounded-xl border-2 border-stone-300 bg-stone-50 p-5 transition-all duration-500 md:w-48 lg:w-56 lg:p-6 ${
+            showBox ? "translate-x-0 opacity-100" : "-translate-x-8 opacity-0"
           }`}
           style={{ transitionDelay: "200ms" }}
         >
@@ -1521,8 +1584,8 @@ function DecisionTabContent({
             </div>
             <div className="text-[10px] uppercase tracking-wider text-stone-400">extract &rarr; LLM + Z3 + AR &rarr; reconcile</div>
           </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <div
                 className={`inline-block rounded px-2 py-1 text-xs font-semibold uppercase tracking-wider ${
                   check.result === "SAT"
@@ -1535,7 +1598,7 @@ function DecisionTabContent({
               </div>
               {/* Show per-solver verdicts if available */}
               {(check.llm_result || check.z3_result || check.ar_result) && (
-                <div className="flex gap-1 text-[10px]">
+                <div className="flex flex-wrap gap-1 text-[10px]">
                   {check.llm_result && (
                     <span className={`rounded px-1.5 py-0.5 ${check.llm_result === "SAT" || check.llm_result === "VALID" ? "bg-emerald-50 text-emerald-700" : check.llm_result === "UNSAT" || check.llm_result === "INVALID" ? "bg-rose-50 text-rose-700" : "bg-amber-50 text-amber-700"}`}>
                       LLM: {check.llm_result}
