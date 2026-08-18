@@ -2,7 +2,7 @@
  * Time how long a real proof takes to generate for a given policy_id + action.
  *
  * This is a throwaway A/B harness for comparing proof-generation latency across
- * policy variants (e.g. the full pricing policy vs. policies/lite/ probes). It:
+ * policy variants (e.g. the full procurement policy vs. policies/lite/procurement.txt). It:
  *
  *   1. POSTs /v1/checkIt to get the decision + proof_id (handles JSON or SSE).
  *   2. Polls GET /v1/proof/:id until it goes ready (404 -> not ready, 200 -> ready).

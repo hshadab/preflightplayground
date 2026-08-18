@@ -1,9 +1,0 @@
-Competition pricing guardrail for an autonomous pricing agent. The agent may set prices and commercial terms and may communicate with counterparties. The counterparty type and the documented cost floor required to evaluate an action must be known and verified; otherwise the action is blocked. Every action must satisfy every clause below; if any clause fails, the action is blocked and routed to a human.
-
-1. No price set by the action may be below the documented cost floor for that product.
-
-2. The action's conduct type may not be setting, requesting, recommending, or enforcing a minimum or fixed resale price for an independent reseller or distributor.
-
-3. The action's conduct type may not be disclosing future prices, future output, or future capacity when the recipient type is a competitor.
-
-4. The action's documented basis for any price difference may not be a protected attribute (nationality, ethnicity, gender, or religion).

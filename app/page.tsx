@@ -13,7 +13,6 @@ const ENV_POLICY_IDS: Record<string, string> = {
   refunds: process.env.NEXT_PUBLIC_POLICY_ID_REFUNDS ?? "",
   "data-access": process.env.NEXT_PUBLIC_POLICY_ID_DATA ?? "",
   procurement: process.env.NEXT_PUBLIC_POLICY_ID_PROC ?? "",
-  "algorithmic-pricing": process.env.NEXT_PUBLIC_POLICY_ID_PRICING ?? "",
 };
 
 const PROOF_TIMEOUT_MS = 90_000;

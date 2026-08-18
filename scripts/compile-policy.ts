@@ -90,7 +90,6 @@ const SLUG_TO_ENV_KEY: Record<string, string> = {
   refunds: "NEXT_PUBLIC_POLICY_ID_REFUNDS",
   "data-access": "NEXT_PUBLIC_POLICY_ID_DATA",
   procurement: "NEXT_PUBLIC_POLICY_ID_PROC",
-  "algorithmic-pricing": "NEXT_PUBLIC_POLICY_ID_PRICING",
 };
 
 function upsertEnvLine(current: string, key: string, value: string): string {
