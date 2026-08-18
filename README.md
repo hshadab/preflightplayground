@@ -48,6 +48,23 @@ If a policy's compiled `policy_id` env var is unset (or you press `r`), that pol
 
 When the env var **is** set, replay mode defaults to off and you get real proofs.
 
+## Prewarming (why live proofs feel instant)
+
+Proof sealing is the slow step — measured ~60s on the procurement policy (and
+that time is a property of the compiled policy on ICME's prover: it does not
+vary with action length, and a 4-clause "lite" recompile measured *slower*,
+~88s; see `scripts/time-proof.ts`). So the page fires `/api/check` for **every
+preset of the selected policy as soon as the policy tab is opened**, live mode
+only. While the presenter narrates the action and clauses, the proofs are
+already sealing; by the time a preset is clicked, the verdict is instant and
+the receipt is ready or nearly so. The proof-age counter shows true wall-clock
+time since the check actually fired, so nothing is misrepresented.
+
+Costs: ~1 credit per preset per policy tab opened per session (~$0.03 per
+tab). Prewarmed entries are one-shot — proofs are single-use, so a repeat
+click of the same preset runs a fresh live check. Prewarming is skipped in
+replay mode, on share-link views, and for unconfigured policies.
+
 ## Shareable receipts
 
 The Receipt tab has a "Share this receipt" button that captures the full verified receipt into a `#share=<base64url(JSON)>` URL fragment. Hash fragments are never sent to servers, so this is safe to paste into Slack/email — the recipient sees exactly the captured `verify` response (`policy_hash`, `claimed_result`, `verify_ms`, etc.) without re-spending a proof verification or hitting the single-use 409. There's a "Re-verify on chain" button, but in replay mode and on already-consumed proofs it explains the 409 instead of failing silently.

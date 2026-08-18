@@ -671,12 +671,15 @@ export default function Page() {
   // ---- proof polling with hard timeout + retry --------------------------
   const pollAbortRef = useRef<{ cancel: () => void } | null>(null);
 
-  const startPolling = useCallback((proofId: string) => {
+  const startPolling = useCallback((proofId: string, startedAt?: number) => {
     pollAbortRef.current?.cancel();
     setProofReady(false);
-    setProofGenSeconds(0);
+    // For a prewarmed check, startedAt is when the check actually fired, so
+    // the visible counter reports true wall-clock sealing time rather than
+    // pretending the proof was instant.
+    proofGenStartRef.current = startedAt ?? Date.now();
+    setProofGenSeconds(Math.round((Date.now() - proofGenStartRef.current) / 1000));
     setProofTimedOut(false);
-    proofGenStartRef.current = Date.now();
     let cancelled = false;
 
     const tick = setInterval(() => {
@@ -709,7 +712,7 @@ export default function Page() {
         } catch {
           // keep polling
         }
-        await new Promise((r) => setTimeout(r, 3000));
+        await new Promise((r) => setTimeout(r, 1000));
         if (Date.now() - (proofGenStartRef.current ?? Date.now()) > PROOF_TIMEOUT_MS) {
           if (!cancelled) {
             // Snap the visible counter to actual wall-clock elapsed.
@@ -747,9 +750,49 @@ export default function Page() {
       }, 250); // accelerated for replays so the demo doesn't stall.
       return () => clearInterval(id);
     }
-    startPolling(check.proof_id);
+    startPolling(check.proof_id, prewarmStartRef.current ?? undefined);
+    prewarmStartRef.current = null;
     return () => pollAbortRef.current?.cancel();
   }, [check?.proof_id, effectiveReplay, activePreset, startPolling]);
+
+  // ---- prewarm: fire checks the moment a policy is selected --------------
+  // Proof sealing is the slow step (30-90s on the heavier policies). By
+  // firing every preset's /api/check as soon as the presenter opens a policy
+  // tab, the proof is already sealing while they narrate the action and the
+  // clauses; by the time they click "Run", the verdict is instant and the
+  // receipt is ready or nearly so. Entries are one-shot (proofs are
+  // single-use), keyed by policy_id + preset label, and never re-fired.
+  // Costs ~1 credit per preset per policy tab opened in a session.
+  const prewarmRef = useRef<Map<string, { promise: Promise<CheckResponse | null>; startedAt: number }>>(
+    new Map()
+  );
+  const prewarmStartRef = useRef<number | null>(null);
+
+  const firePrewarm = useCallback((pid: string, preset: Preset) => {
+    const key = `${pid}:${preset.label}`;
+    if (prewarmRef.current.has(key)) return;
+    const startedAt = Date.now();
+    const promise = (async (): Promise<CheckResponse | null> => {
+      try {
+        const res = await fetch("/api/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ policy_id: pid, action: preset.action }),
+        });
+        const data = (await res.json()) as CheckResponse | { error: string };
+        if (!res.ok || "error" in data) return null;
+        return data as CheckResponse;
+      } catch {
+        return null;
+      }
+    })();
+    prewarmRef.current.set(key, { promise, startedAt });
+  }, []);
+
+  useEffect(() => {
+    if (!didProcessUrl || shareView || effectiveReplay || !policyId) return;
+    for (const preset of policy.presets) firePrewarm(policyId, preset);
+  }, [didProcessUrl, shareView, effectiveReplay, policy, policyId, firePrewarm]);
 
   // ---- run a check ------------------------------------------------------
   async function runCheck(preset: Preset) {
@@ -785,6 +828,24 @@ export default function Page() {
     }
 
     setCheckLoading(true);
+
+    // Consume a prewarmed check if one is in flight or done for this preset.
+    // One-shot: the entry is deleted on use because its proof is single-use,
+    // so a repeat click of the same preset runs a fresh live check.
+    const prewarmKey = `${policyId}:${preset.label}`;
+    const prewarmed = prewarmRef.current.get(prewarmKey);
+    if (prewarmed) {
+      prewarmRef.current.delete(prewarmKey);
+      const data = await prewarmed.promise;
+      if (data) {
+        prewarmStartRef.current = prewarmed.startedAt;
+        setCheck(data);
+        setCheckLoading(false);
+        return;
+      }
+      // Prewarm failed (network/upstream error) — fall through to a live call.
+    }
+
     try {
       const res = await fetch("/api/check", {
         method: "POST",
@@ -1630,6 +1691,19 @@ function DecisionTabContent({
 
           {activePreset && (
             <div className="mt-4 space-y-2">
+              {/* The per-clause table is authored per preset, not computed from
+                  the API. If a live run's verdict disagrees with the preset's
+                  expected outcome, showing the scripted table would contradict
+                  the badge above it — hide it and say why. */}
+              {!replay && check.result !== activePreset.expected ? (
+                <div className="rounded border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
+                  <span className="font-semibold">Live verdict differs from this preset&apos;s expected outcome</span>{" "}
+                  (engine returned {check.result === "SAT" ? "Allowed" : "Blocked"}, preset expects{" "}
+                  {activePreset.expected === "SAT" ? "Allowed" : "Blocked"}). The pre-written per-clause
+                  breakdown is hidden because it no longer matches what the engine returned — go by the
+                  verdict, engine sub-results, and reason above.
+                </div>
+              ) : (
               <Disclosure
                 summary={
                   <span>
@@ -1660,6 +1734,7 @@ function DecisionTabContent({
                   ))}
                 </ul>
               </Disclosure>
+              )}
 
               <Disclosure
                 summary={
