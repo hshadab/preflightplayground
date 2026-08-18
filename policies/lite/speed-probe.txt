@@ -1,0 +1,1 @@
+1. No single purchase order may exceed $250,000.

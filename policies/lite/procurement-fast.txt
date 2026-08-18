@@ -1,0 +1,15 @@
+Procurement guardrail for a purchasing agent. Every purchase order must satisfy every clause below; if any clause fails, the action is blocked and routed to a human procurement officer.
+
+1. No single purchase order may exceed $250,000.
+
+2. Cumulative quarterly spend with the supplier may not exceed $1,000,000.
+
+3. The supplier's status in the supplier master must be "active".
+
+4. The supplier's sanctions screening result must be "clear", screened within the past 24 hours.
+
+5. Any purchase order of $25,000 or more requires an executed master services agreement on file.
+
+6. Payment terms must be Net-30 or longer, and any advance payment may not exceed 25% of the purchase order total.
+
+7. The approver must be a different person from the requester and must hold delegated authority of at least the purchase order amount.
