@@ -53,9 +53,15 @@ When the env var **is** set, replay mode defaults to off and you get real proofs
 Proof sealing is the slow step — measured ~60s on the procurement policy (and
 that time is a property of the compiled policy on ICME's prover: it does not
 vary with action length, and a 4-clause "lite" recompile measured *slower*,
-~88s; see `scripts/time-proof.ts`). So the page fires `/api/check` for **every
-preset of the selected policy as soon as the policy tab is opened**, live mode
-only. While the presenter narrates the action and clauses, the proofs are
+~88s; see `scripts/time-proof.ts`). So the page prewarms the selected policy's
+presets, live mode only — **sequentially**: it fires preset 1's `/api/check`,
+waits until that proof is actually ready, then warms preset 2, then 3. The
+prover works through roughly one proof a minute per account, so firing all
+presets at once queues them against each other and against whatever the
+presenter clicks (observed: a ~60s proof blowing past the timeout). One at a
+time, prewarming never contends with the live demo — which also means the
+green dots appear one by one over ~3 minutes, in the same order as the
+suggested demo script. While the presenter narrates the action and clauses, the proofs are
 already sealing; by the time a preset is clicked, the verdict is instant and
 the receipt is ready or nearly so. The proof-age counter shows true wall-clock
 time since the check actually fired, so nothing is misrepresented.

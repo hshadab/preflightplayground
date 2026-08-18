@@ -15,7 +15,7 @@ const ENV_POLICY_IDS: Record<string, string> = {
   procurement: process.env.NEXT_PUBLIC_POLICY_ID_PROC ?? "",
 };
 
-const PROOF_TIMEOUT_MS = 90_000;
+const PROOF_TIMEOUT_MS = 180_000;
 const HEALTH_REFRESH_MS = 60_000;
 
 // ---------- helpers ---------------------------------------------------------
@@ -844,6 +844,9 @@ export default function Page() {
   );
   const prewarmStartRef = useRef<number | null>(null);
   const didHydratePrewarmRef = useRef(false);
+  // Monotonic id for the sequential prewarm chain; bumping it cancels any
+  // chain from a previous policy selection.
+  const prewarmChainRef = useRef(0);
   // Keys with a resolved prewarmed check — drives the "warm" dot on presets.
   const [warmedKeys, setWarmedKeys] = useState<Set<string>>(new Set());
 
@@ -901,7 +904,39 @@ export default function Page() {
         });
       }
     }
-    for (const preset of policy.presets) firePrewarm(policyId, preset);
+    // Warm presets SEQUENTIALLY: fire one check, wait until its proof is
+    // actually ready, then start the next. The prover works through proofs
+    // at roughly one a minute per account — firing all presets at once
+    // queues them against each other AND against whatever the presenter
+    // clicks, which is how a ~60s proof blows past the timeout. One at a
+    // time, prewarming never contends with the live demo.
+    const chainId = ++prewarmChainRef.current;
+    (async () => {
+      for (const preset of policy.presets) {
+        if (prewarmChainRef.current !== chainId) return; // superseded
+        const key = `${policyId}:${preset.label}`;
+        const already = prewarmRef.current.has(key);
+        firePrewarm(policyId, preset);
+        const entry = prewarmRef.current.get(key);
+        if (!entry) continue;
+        const check = await entry.promise.catch(() => null);
+        // Only gate the chain on proof-readiness for checks we just fired;
+        // hydrated entries from a previous load are already sealed or close.
+        if (!already && check?.proof_id) {
+          const deadline = Date.now() + 240_000;
+          while (Date.now() < deadline && prewarmChainRef.current === chainId) {
+            try {
+              const res = await fetch(`/api/proof-status?proof_id=${check.proof_id}`);
+              const data = (await res.json()) as { ready: boolean };
+              if (data.ready) break;
+            } catch {
+              // transient — keep waiting
+            }
+            await new Promise((r) => setTimeout(r, 5000));
+          }
+        }
+      }
+    })();
   }, [didProcessUrl, shareView, effectiveReplay, policy, policyId, firePrewarm]);
 
   // ---- run a check ------------------------------------------------------
@@ -1995,7 +2030,9 @@ function DecisionTabContent({
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
                     <span className="text-amber-800">
-                      Still generating after {proofGenSeconds}s. The proof may already be ready &mdash; try verify now, or retry the status check.
+                      Still sealing after {formatGenDuration(proofGenSeconds)} &mdash; the prover is busy
+                      (other proofs may be queued ahead of this one). It will land; try verify now or
+                      retry the status check.
                     </span>
                     <button
                       onClick={onRetryPolling}
