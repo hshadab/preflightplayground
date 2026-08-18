@@ -154,6 +154,19 @@ function removePrewarm(key: string) {
 
 // ---------- small reusable bits --------------------------------------------
 
+// One-pager section label: blue letterspaced small caps with a hairline
+// rule extending to the right.
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-2 flex items-center gap-3">
+      <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.15em] text-[#346DDB]">
+        {children}
+      </span>
+      <span className="h-px flex-1 bg-[#C9D4E8]" />
+    </div>
+  );
+}
+
 function Disclosure({
   summary,
   children,
@@ -331,7 +344,7 @@ function ArchitectureDiagram() {
   const showArrow4 = phase >= 4;
 
   return (
-    <div className="rounded-lg border border-stone-200 bg-white p-4 sm:p-6 lg:p-8">
+    <div className="op-card p-4 sm:p-6 lg:p-8">
       <div className="mb-6 text-center">
         <div className="text-xs font-semibold uppercase tracking-wider text-stone-700">
           Trust model — what crosses each line
@@ -518,7 +531,7 @@ function WireBlock({
   const resBytes = byteLen(response);
   const bodyText = JSON.stringify(request.body, null, 2);
   return (
-    <div className="rounded-lg border border-stone-200 bg-white p-4">
+    <div className="op-card p-4">
       <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-stone-700">{title}</div>
       <div className="mb-3 text-xs text-stone-600">{description}</div>
       <Disclosure
@@ -1116,35 +1129,70 @@ export default function Page() {
               </span>
             )}
           </div>
-          <h1 className="mt-1 text-xl font-semibold text-stone-900 sm:text-3xl">
-            Cryptographic receipts for AI agent actions.
+          <h1 className="mt-2 max-w-3xl text-2xl font-bold leading-tight tracking-tight text-[#16213C] sm:text-4xl">
+            You already have agent controls. This is{" "}
+            <span className="text-[#346DDB]">the one artifact they can&rsquo;t produce.</span>
           </h1>
-          <p className="mt-3 max-w-3xl text-sm text-stone-600">
-            Every agent action is checked against your policy before it runs. Allowed actions
-            execute; disallowed ones are blocked before any side effect fires. Each decision comes
-            with a cryptographic proof an auditor can verify in milliseconds.{" "}
-            <strong>Choose a policy, then click a scenario to start.</strong>
+          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-[#4A5677]">
+            Policy engines, guardrails, and audit logs all share one limit: their evidence is checked
+            inside the same system it vouches for &mdash; and even self-attestation at machine speed is
+            still self-attestation. Here, every agent action is blocked or allowed{" "}
+            <strong className="text-[#16213C]">before it executes</strong>, and each decision is sealed
+            into a receipt you verify live against an endpoint this site doesn&rsquo;t control.{" "}
+            <strong className="text-[#16213C]">Choose a policy, then click a scenario to start.</strong>
           </p>
         </div>
-        <a href="https://icme.io" target="_blank" rel="noreferrer" className="shrink-0">
+        <a href="https://icme.io" target="_blank" rel="noreferrer" className="flex shrink-0 flex-col items-end gap-1.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="https://lh3.googleusercontent.com/zIz4Vb9ksY4pKhfHUT2MyVeMeNWdviRQIDnVVL9fCBofCGvKFi-8s7JHbjFjD3Baoxbk9Q6iLAzoj3jKxf_VNGxd78h5beg3KQ=s0"
             alt="ICME Labs"
             className="h-8 w-auto sm:h-12"
           />
+          <span className="text-right text-[9px] font-bold uppercase leading-tight tracking-widest text-[#346DDB]">
+            Give your agents
+            <br />
+            high-stakes work
+          </span>
         </a>
       </header>
+
+      {/* Translate → Enforce → Verify, the one-pager's three steps mapped to this demo */}
+      <div className="mb-6 grid gap-3 sm:grid-cols-3 sm:gap-4">
+        {[
+          {
+            n: "1",
+            title: "Translate",
+            body: "Rules written in plain English become mathematical constraints, compiled once — the policies in the left column.",
+          },
+          {
+            n: "2",
+            title: "Enforce",
+            body: "Each proposed action returns a deterministic allow or block before it executes. Same rule, same action, same decision every time.",
+          },
+          {
+            n: "3",
+            title: "Verify",
+            body: "Every decision seals into a tamper-evident zero-knowledge receipt any third party can verify without trusting this site.",
+          },
+        ].map((s) => (
+          <div key={s.n} className="op-card p-4 sm:p-5">
+            <div className="flex items-baseline gap-2">
+              <span className="font-mono text-[10px] font-bold text-[#346DDB]">{s.n}</span>
+              <span className="text-sm font-bold text-[#16213C]">{s.title}</span>
+            </div>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-[#4A5677]">{s.body}</p>
+          </div>
+        ))}
+      </div>
 
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
         {/* LEFT COLUMN: policy library + presets, sticky on desktop */}
         <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
           {/* policy library */}
           <section>
-            <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-stone-700">
-              Example policies
-            </div>
-            <div className="mb-2 text-[11px] text-stone-500">
+            <SectionLabel>Example policies</SectionLabel>
+            <div className="mb-2 text-[11px] text-[#4A5677]">
               For this demo. Not authored by ICME in production.
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -1155,10 +1203,10 @@ export default function Page() {
                   <button
                     key={p.id}
                     onClick={() => selectPolicy(p.id)}
-                    className={`rounded-lg border p-2 text-left transition ${
+                    className={`rounded-xl border p-2 text-left shadow-sm transition ${
                       isActive
                         ? "border-[#346DDB] bg-blue-50"
-                        : "border-stone-200 bg-stone-100 hover:border-stone-400"
+                        : "border-transparent bg-white hover:border-[#346DDB]/50"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-1">
@@ -1200,9 +1248,7 @@ export default function Page() {
           </section>
 
           <section>
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-700">
-              Pick a proposed agent action
-            </div>
+            <SectionLabel>Pick a proposed agent action</SectionLabel>
             <div className="space-y-2">
               {policy.presets.map((preset) => {
                 const isActive = activePreset?.label === preset.label;
@@ -1211,10 +1257,10 @@ export default function Page() {
                     key={preset.label}
                     onClick={() => runCheck(preset)}
                     disabled={checkLoading}
-                    className={`block w-full rounded-lg border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                    className={`block w-full rounded-xl border p-3 text-left shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
                       isActive
                         ? "border-[#346DDB] bg-blue-50"
-                        : "border-stone-200 bg-stone-100 hover:border-stone-400"
+                        : "border-transparent bg-white hover:border-[#346DDB]/50"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -1252,9 +1298,7 @@ export default function Page() {
           </section>
 
           <section className="space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wider text-stone-700">
-              Going deeper
-            </div>
+            <SectionLabel>Going deeper</SectionLabel>
 
             <Disclosure
               summary={
@@ -1352,7 +1396,7 @@ export default function Page() {
         </aside>
 
         {/* RIGHT COLUMN: tabbed (Decision / Wire / Receipt / Integrate) */}
-        <div className="rounded-lg border border-stone-200 bg-white">
+        <div className="op-card overflow-hidden">
           {/* Companion line: one sentence that tracks where the user is in the flow */}
           <div className="border-b border-stone-100 px-4 py-2.5 text-xs text-stone-600">
             {verify
@@ -1758,14 +1802,15 @@ function DecisionTabContent({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <div
-                className={`inline-block rounded px-2 py-1 text-xs font-semibold uppercase tracking-wider ${
-                  check.result === "SAT"
-                    ? "bg-emerald-100 text-emerald-800"
-                    : "bg-rose-100 text-rose-800"
+                className={`inline-flex items-center gap-2 font-mono text-lg font-bold tracking-wide ${
+                  check.result === "SAT" ? "text-emerald-600" : "text-[#FB2C36]"
                 }`}
               >
-                {check.result}
-                {check.blocked ? " (blocked)" : " (allowed)"}
+                <span className="inline-block h-2.5 w-2.5 rounded-full bg-current" />
+                {check.result === "SAT" ? "ALLOWED" : "BLOCKED"}
+                <span className="font-sans text-[10px] font-normal uppercase tracking-wider text-stone-400">
+                  {check.result}
+                </span>
               </div>
               {/* Show per-solver verdicts if available */}
               {(check.llm_result || check.z3_result || check.ar_result) && (
@@ -1897,17 +1942,52 @@ function DecisionTabContent({
                 that anyone can verify independently &mdash; no API key, no access to your policy or inputs.
               </p>
 
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <span className="text-xs uppercase tracking-wider text-stone-500">proof_id</span>
-                <code className="break-all rounded bg-stone-100 px-2 py-1 font-mono text-[11px] text-stone-900">
-                  {check.proof_id}
-                </code>
-                <button
-                  onClick={onCopyProofId}
-                  className="rounded border border-stone-300 px-2 py-0.5 text-[11px] text-stone-700 hover:border-stone-400"
+              {/* Receipt ledger card, styled after the one-pager's sample receipt */}
+              <div className="mt-4 max-w-md rounded-xl bg-[#F1F5FB] p-4">
+                <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-stone-400">
+                  Live receipt
+                </div>
+                <div
+                  className={`mt-1.5 flex items-center gap-2 font-mono text-base font-bold ${
+                    check.result === "SAT" ? "text-emerald-600" : "text-[#FB2C36]"
+                  }`}
                 >
-                  {copied ? "copied" : "copy"}
-                </button>
+                  <span className="inline-block h-2 w-2 rounded-full bg-current" />
+                  {check.result === "SAT" ? "ALLOWED" : "BLOCKED"}
+                </div>
+                <div className="mt-2 font-mono text-[11px]">
+                  <div className="receipt-row">
+                    <span className="shrink-0 text-stone-500">action</span>
+                    <span className="truncate text-right text-[#346DDB]">
+                      {activePreset ? activePreset.label : "agent action"}
+                    </span>
+                  </div>
+                  {check.result === "UNSAT" && check.violated_rule !== undefined && (
+                    <div className="receipt-row">
+                      <span className="shrink-0 text-stone-500">rule</span>
+                      <span className="text-right text-[#346DDB]">clause_{check.violated_rule}</span>
+                    </div>
+                  )}
+                  <div className="receipt-row">
+                    <span className="shrink-0 text-stone-500">proof</span>
+                    <span className="flex min-w-0 items-baseline gap-2 text-right">
+                      <span className="truncate text-[#346DDB]" title={check.proof_id}>
+                        {check.proof_id.slice(0, 8)}&hellip;{check.proof_id.slice(-4)}
+                      </span>
+                      <button
+                        onClick={onCopyProofId}
+                        className="shrink-0 rounded border border-[#C9D4E8] px-1.5 py-0 font-sans text-[10px] text-stone-600 hover:border-stone-400"
+                      >
+                        {copied ? "copied" : "copy"}
+                      </button>
+                    </span>
+                  </div>
+                </div>
+                {verify && verify.valid && (
+                  <div className="mt-2.5 font-mono text-[10px] text-emerald-600">
+                    verified externally &middot; authentic &#10003;
+                  </div>
+                )}
               </div>
 
               <div className="mt-3 text-xs">
@@ -2007,6 +2087,10 @@ function DecisionTabContent({
                       The browser called <span className="font-mono">api.icme.io/v1/verifyProof</span> directly &mdash;
                       no API key, no proxy through this site. Open DevTools &rarr; Network to confirm.
                     </div>
+                  </div>
+                  <div className="mt-2 text-[10px] leading-snug text-emerald-700/80">
+                    The receipt verifies the rule fired against the asserted facts of the action; it does
+                    not claim those facts are true of the world.
                   </div>
                 </div>
               )}
@@ -2198,7 +2282,7 @@ function ReceiptOnlyView({ payload, onClear }: { payload: SharePayload; onClear:
         </p>
       </div>
 
-      <div className="rounded-lg border border-stone-200 bg-white p-4 sm:p-5">
+      <div className="op-card p-4 sm:p-5">
         <div className="mb-3 grid gap-3 sm:grid-cols-2">
           <div>
             <div className="text-[10px] uppercase tracking-wider text-stone-500">Policy</div>
