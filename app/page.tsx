@@ -24,6 +24,12 @@ function formatMs(ms: number): string {
   return `${(ms / 1000).toFixed(2)}s`;
 }
 
+function formatGenDuration(s: number): string {
+  if (s < 120) return `${s}s`;
+  if (s < 7200) return `${Math.round(s / 60)}m`;
+  return `${(s / 3600).toFixed(1)}h`;
+}
+
 function normalizeReason(reason: string, _result: "SAT" | "UNSAT"): string {
   if (!reason) return "";
   if (/AR blocked.*local solver: SAT/i.test(reason)) {
@@ -92,6 +98,59 @@ interface SharePayload {
 }
 
 type HealthStatus = "ok" | "degraded" | "unknown";
+
+// ---------- prewarm persistence --------------------------------------------
+// Prewarmed checks survive page reloads so a presenter can open the page
+// before a call ("warm the demo") and get instant verdicts + already-sealed
+// proofs on the call itself, with the verify step still hitting the live
+// endpoint. Entries expire after 12h (server-side proof retention is not
+// documented; anything stale just falls back to a live check).
+
+const PREWARM_STORE_KEY = "preflight-prewarm-v1";
+const PREWARM_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+
+interface StoredPrewarm {
+  check: CheckResponse;
+  startedAt: number;
+}
+
+function readPrewarmStore(): Record<string, StoredPrewarm> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(PREWARM_STORE_KEY);
+    if (!raw) return {};
+    const all = JSON.parse(raw) as Record<string, StoredPrewarm>;
+    const fresh: Record<string, StoredPrewarm> = {};
+    for (const [k, v] of Object.entries(all)) {
+      if (v?.check?.proof_id && Date.now() - v.startedAt < PREWARM_MAX_AGE_MS) fresh[k] = v;
+    }
+    return fresh;
+  } catch {
+    return {};
+  }
+}
+
+function writePrewarmStore(store: Record<string, StoredPrewarm>) {
+  try {
+    window.localStorage.setItem(PREWARM_STORE_KEY, JSON.stringify(store));
+  } catch {
+    // storage full/unavailable — prewarm still works in-memory
+  }
+}
+
+function persistPrewarm(key: string, entry: StoredPrewarm) {
+  const store = readPrewarmStore();
+  store[key] = entry;
+  writePrewarmStore(store);
+}
+
+function removePrewarm(key: string) {
+  const store = readPrewarmStore();
+  if (key in store) {
+    delete store[key];
+    writePrewarmStore(store);
+  }
+}
 
 // ---------- small reusable bits --------------------------------------------
 
@@ -694,6 +753,10 @@ export default function Page() {
     };
     pollAbortRef.current = { cancel: stop };
 
+    // Timeout budget counts from when THIS polling loop started, not from
+    // startedAt — a check prewarmed long ago must still get a full window.
+    const pollStart = Date.now();
+
     (async () => {
       while (!cancelled) {
         try {
@@ -713,7 +776,7 @@ export default function Page() {
           // keep polling
         }
         await new Promise((r) => setTimeout(r, 1000));
-        if (Date.now() - (proofGenStartRef.current ?? Date.now()) > PROOF_TIMEOUT_MS) {
+        if (Date.now() - pollStart > PROOF_TIMEOUT_MS) {
           if (!cancelled) {
             // Snap the visible counter to actual wall-clock elapsed.
             // The 1s tick interval can be throttled by the browser when the tab
@@ -767,6 +830,9 @@ export default function Page() {
     new Map()
   );
   const prewarmStartRef = useRef<number | null>(null);
+  const didHydratePrewarmRef = useRef(false);
+  // Keys with a resolved prewarmed check — drives the "warm" dot on presets.
+  const [warmedKeys, setWarmedKeys] = useState<Set<string>>(new Set());
 
   const firePrewarm = useCallback((pid: string, preset: Preset) => {
     const key = `${pid}:${preset.label}`;
@@ -781,7 +847,16 @@ export default function Page() {
         });
         const data = (await res.json()) as CheckResponse | { error: string };
         if (!res.ok || "error" in data) return null;
-        return data as CheckResponse;
+        const check = data as CheckResponse;
+        // Persist so the warm state survives a page reload (proofs stay
+        // verifiable server-side until someone actually verifies them).
+        if (check.proof_id) persistPrewarm(key, { check, startedAt });
+        setWarmedKeys((s) => {
+          const n = new Set(s);
+          n.add(key);
+          return n;
+        });
+        return check;
       } catch {
         return null;
       }
@@ -791,6 +866,28 @@ export default function Page() {
 
   useEffect(() => {
     if (!didProcessUrl || shareView || effectiveReplay || !policyId) return;
+    // Hydrate prewarmed checks from a previous page load once, before firing
+    // anything new — a warmed-then-reloaded page must not re-spend credits.
+    if (!didHydratePrewarmRef.current) {
+      didHydratePrewarmRef.current = true;
+      const stored = readPrewarmStore();
+      const keys = Object.keys(stored);
+      for (const key of keys) {
+        if (!prewarmRef.current.has(key)) {
+          prewarmRef.current.set(key, {
+            promise: Promise.resolve(stored[key].check),
+            startedAt: stored[key].startedAt,
+          });
+        }
+      }
+      if (keys.length) {
+        setWarmedKeys((s) => {
+          const n = new Set(s);
+          for (const k of keys) n.add(k);
+          return n;
+        });
+      }
+    }
     for (const preset of policy.presets) firePrewarm(policyId, preset);
   }, [didProcessUrl, shareView, effectiveReplay, policy, policyId, firePrewarm]);
 
@@ -836,6 +933,12 @@ export default function Page() {
     const prewarmed = prewarmRef.current.get(prewarmKey);
     if (prewarmed) {
       prewarmRef.current.delete(prewarmKey);
+      removePrewarm(prewarmKey);
+      setWarmedKeys((s) => {
+        const n = new Set(s);
+        n.delete(prewarmKey);
+        return n;
+      });
       const data = await prewarmed.promise;
       if (data) {
         prewarmStartRef.current = prewarmed.startedAt;
@@ -1116,14 +1219,22 @@ export default function Page() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="text-xs font-medium text-stone-900">{preset.label}</div>
-                      <div
-                        className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
-                          preset.expected === "SAT"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-rose-100 text-rose-800"
-                        }`}
-                      >
-                        {preset.expected === "SAT" ? "Allowed" : "Blocked"}
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        {warmedKeys.has(`${policyId}:${preset.label}`) && (
+                          <span
+                            title="Prewarmed: verdict will be instant and the proof is already sealing or sealed"
+                            className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"
+                          />
+                        )}
+                        <div
+                          className={`rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
+                            preset.expected === "SAT"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-rose-100 text-rose-800"
+                          }`}
+                        >
+                          {preset.expected === "SAT" ? "Allowed" : "Blocked"}
+                        </div>
                       </div>
                     </div>
                     <div className="mt-1 text-[11px] text-stone-600">{preset.blurb}</div>
@@ -1817,7 +1928,9 @@ function DecisionTabContent({
                   <div className="flex items-center gap-2">
                     <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
                     <span className="text-emerald-700">
-                      Proof ready ({proofGenSeconds}s to generate). Verification is sub-second.
+                      {proofGenSeconds > 180
+                        ? `Proof ready — sealed ${formatGenDuration(proofGenSeconds)} ago (the check fired when this policy tab was opened). Verification is sub-second.`
+                        : `Proof ready (${proofGenSeconds}s to generate). Verification is sub-second.`}
                     </span>
                   </div>
                 ) : (

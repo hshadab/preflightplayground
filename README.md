@@ -65,6 +65,19 @@ tab). Prewarmed entries are one-shot — proofs are single-use, so a repeat
 click of the same preset runs a fresh live check. Prewarming is skipped in
 replay mode, on share-link views, and for unconfigured policies.
 
+**Warming before a call.** Prewarmed checks persist in `localStorage` for
+12 hours and survive page reloads, so the prep ritual is: open the page
+(and click through the policy tabs you plan to show) a few minutes before
+the call. Each preset button shows a small green dot once its check is
+warm. On the call, the verdict is instant, the receipt panel says plainly
+that the proof was sealed earlier ("sealed 9m ago — the check fired when
+this policy tab was opened"), and the Verify button still performs a real,
+first-time `verifyProof` against `api.icme.io` from the browser — proofs
+are single-use *for verification*, so an unverified prewarmed proof is
+exactly as verifiable as a fresh one. Clicking a preset consumes its
+warm entry; verifying consumes the proof. Nothing about the verification
+is replayed.
+
 ## Shareable receipts
 
 The Receipt tab has a "Share this receipt" button that captures the full verified receipt into a `#share=<base64url(JSON)>` URL fragment. Hash fragments are never sent to servers, so this is safe to paste into Slack/email — the recipient sees exactly the captured `verify` response (`policy_hash`, `claimed_result`, `verify_ms`, etc.) without re-spending a proof verification or hitting the single-use 409. There's a "Re-verify on chain" button, but in replay mode and on already-consumed proofs it explains the 409 instead of failing silently.
